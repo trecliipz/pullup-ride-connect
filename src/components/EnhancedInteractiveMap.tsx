@@ -1,0 +1,347 @@
+
+import { useEffect, useRef, useState } from 'react';
+import { Card } from '@/components/ui/card';
+import { MapPin, Navigation, Car } from 'lucide-react';
+import { useUser } from '@/context/UserContext';
+
+interface EnhancedInteractiveMapProps {
+  pickup?: string;
+  destination?: string;
+  onDistanceCalculated?: (distance: number) => void;
+}
+
+declare global {
+  interface Window {
+    google: typeof google;
+  }
+}
+
+const EnhancedInteractiveMap = ({ pickup, destination, onDistanceCalculated }: EnhancedInteractiveMapProps) => {
+  const mapRef = useRef<HTMLDivElement>(null);
+  const [map, setMap] = useState<google.maps.Map | null>(null);
+  const [directionsService, setDirectionsService] = useState<google.maps.DirectionsService | null>(null);
+  const [directionsRenderer, setDirectionsRenderer] = useState<google.maps.DirectionsRenderer | null>(null);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [driverMarkers, setDriverMarkers] = useState<google.maps.Marker[]>([]);
+  
+  const { availableDrivers, currentUser, isDriver } = useUser();
+
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          });
+        },
+        (error) => {
+          console.log('Error getting location:', error);
+          setUserLocation({ lat: 40.7128, lng: -74.0060 });
+        }
+      );
+    } else {
+      setUserLocation({ lat: 40.7128, lng: -74.0060 });
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!mapRef.current || !userLocation || typeof window.google === 'undefined') return;
+
+    const mapInstance = new window.google.maps.Map(mapRef.current, {
+      center: userLocation,
+      zoom: 13,
+      styles: [
+        {
+          "featureType": "all",
+          "elementType": "geometry.fill",
+          "stylers": [{ "weight": "2.00" }]
+        },
+        {
+          "featureType": "all",
+          "elementType": "geometry.stroke",
+          "stylers": [{ "color": "#9c9c9c" }]
+        },
+        {
+          "featureType": "landscape",
+          "elementType": "all",
+          "stylers": [{ "color": "#f2f2f2" }]
+        },
+        {
+          "featureType": "poi",
+          "elementType": "all",
+          "stylers": [{ "visibility": "off" }]
+        },
+        {
+          "featureType": "road",
+          "elementType": "all",
+          "stylers": [{ "saturation": -100 }, { "lightness": 45 }]
+        },
+        {
+          "featureType": "road",
+          "elementType": "geometry.fill",
+          "stylers": [{ "color": "#eeeeee" }]
+        },
+        {
+          "featureType": "water",
+          "elementType": "all",
+          "stylers": [{ "color": "#46bcec" }, { "visibility": "on" }]
+        }
+      ]
+    });
+
+    setMap(mapInstance);
+
+    const directionsServiceInstance = new window.google.maps.DirectionsService();
+    const directionsRendererInstance = new window.google.maps.DirectionsRenderer({
+      suppressMarkers: false,
+      polylineOptions: {
+        strokeColor: '#FF6B6B',
+        strokeWeight: 4,
+        strokeOpacity: 0.8
+      }
+    });
+
+    directionsRendererInstance.setMap(mapInstance);
+    setDirectionsService(directionsServiceInstance);
+    setDirectionsRenderer(directionsRendererInstance);
+
+    // Add current user location marker
+    new window.google.maps.Marker({
+      position: userLocation,
+      map: mapInstance,
+      title: isDriver ? 'Your Location (Driver)' : 'Your Location',
+      icon: {
+        url: isDriver 
+          ? 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+              <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="20" cy="20" r="18" fill="#3B82F6" stroke="white" stroke-width="4"/>
+                <path d="M12 20h16M20 12v16" stroke="white" stroke-width="3"/>
+              </svg>
+            `)
+          : 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+              <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="20" cy="20" r="18" fill="#22C55E" stroke="white" stroke-width="4"/>
+                <circle cx="20" cy="20" r="8" fill="white"/>
+              </svg>
+            `),
+        scaledSize: new window.google.maps.Size(40, 40),
+        anchor: new window.google.maps.Point(20, 20)
+      }
+    });
+
+  }, [userLocation, isDriver]);
+
+  // Add driver markers
+  useEffect(() => {
+    if (!map || isDriver) return;
+
+    // Clear existing driver markers
+    driverMarkers.forEach(marker => marker.setMap(null));
+    const newMarkers: google.maps.Marker[] = [];
+
+    availableDrivers.forEach(driver => {
+      if (driver.currentLocation && driver.isAvailable) {
+        const marker = new window.google.maps.Marker({
+          position: driver.currentLocation,
+          map: map,
+          title: `${driver.name} - ${driver.vehicleInfo?.make} ${driver.vehicleInfo?.model}`,
+          icon: {
+            url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+              <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="20" cy="20" r="18" fill="#F97316" stroke="white" stroke-width="4"/>
+                <path d="M10 22h20M12 18h16M14 14h12" stroke="white" stroke-width="2"/>
+                <circle cx="14" cy="26" r="2" fill="white"/>
+                <circle cx="26" cy="26" r="2" fill="white"/>
+              </svg>
+            `),
+            scaledSize: new window.google.maps.Size(40, 40),
+            anchor: new window.google.maps.Point(20, 20)
+          }
+        });
+
+        const infoWindow = new window.google.maps.InfoWindow({
+          content: `
+            <div class="p-2">
+              <div class="font-bold">${driver.name}</div>
+              <div class="text-sm text-gray-600">⭐ ${driver.rating}</div>
+              <div class="text-sm">${driver.vehicleInfo?.make} ${driver.vehicleInfo?.model}</div>
+              <div class="text-sm text-gray-500">${driver.vehicleInfo?.color} • ${driver.vehicleInfo?.licensePlate}</div>
+            </div>
+          `
+        });
+
+        marker.addListener('click', () => {
+          infoWindow.open(map, marker);
+        });
+
+        newMarkers.push(marker);
+      }
+    });
+
+    setDriverMarkers(newMarkers);
+  }, [map, availableDrivers, isDriver]);
+
+  useEffect(() => {
+    if (!directionsService || !directionsRenderer || !map || !pickup || !destination) {
+      if (onDistanceCalculated) {
+        onDistanceCalculated(0);
+      }
+      return;
+    }
+
+    const geocoder = new window.google.maps.Geocoder();
+    
+    Promise.all([
+      new Promise<google.maps.LatLng>((resolve, reject) => {
+        if (pickup === 'Current Location' && userLocation) {
+          resolve(new window.google.maps.LatLng(userLocation.lat, userLocation.lng));
+        } else {
+          geocoder.geocode({ address: pickup }, (results, status) => {
+            if (status === 'OK' && results?.[0]) {
+              resolve(results[0].geometry.location);
+            } else {
+              reject(new Error('Pickup location not found'));
+            }
+          });
+        }
+      }),
+      new Promise<google.maps.LatLng>((resolve, reject) => {
+        geocoder.geocode({ address: destination }, (results, status) => {
+          if (status === 'OK' && results?.[0]) {
+            resolve(results[0].geometry.location);
+          } else {
+            reject(new Error('Destination not found'));
+          }
+        });
+      })
+    ]).then(([pickupLocation, destinationLocation]) => {
+      directionsService.route({
+        origin: pickupLocation,
+        destination: destinationLocation,
+        travelMode: window.google.maps.TravelMode.DRIVING,
+        unitSystem: window.google.maps.UnitSystem.METRIC,
+        avoidHighways: false,
+        avoidTolls: false
+      }, (result, status) => {
+        if (status === 'OK' && result) {
+          directionsRenderer.setDirections(result);
+          
+          const route = result.routes[0];
+          let totalDistance = 0;
+          
+          route.legs.forEach(leg => {
+            if (leg.distance) {
+              totalDistance += leg.distance.value;
+            }
+          });
+          
+          const distanceKm = totalDistance / 1000;
+          
+          if (onDistanceCalculated) {
+            onDistanceCalculated(distanceKm);
+          }
+        } else {
+          console.error('Directions request failed:', status);
+          if (onDistanceCalculated) {
+            onDistanceCalculated(0);
+          }
+        }
+      });
+    }).catch(error => {
+      console.error('Geocoding failed:', error);
+      if (onDistanceCalculated) {
+        onDistanceCalculated(0);
+      }
+    });
+  }, [pickup, destination, directionsService, directionsRenderer, map, userLocation, onDistanceCalculated]);
+
+  if (typeof window.google === 'undefined') {
+    return (
+      <div className="h-full w-full relative">
+        <Card className="h-full bg-gradient-to-br from-blue-50 to-green-50 border-0 rounded-lg overflow-hidden">
+          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-100 via-blue-50 to-green-100">
+            <div className="text-center p-8">
+              <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading Google Maps...</p>
+            </div>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-full w-full relative">
+      <Card className="h-full bg-gradient-to-br from-blue-50 to-green-50 border-0 rounded-lg overflow-hidden">
+        <div 
+          ref={mapRef} 
+          className="w-full h-full relative"
+          style={{ minHeight: '300px' }}
+        />
+        
+        {/* Map Controls */}
+        <div className="absolute top-4 right-4 space-y-2 z-10">
+          <button 
+            onClick={() => map?.setZoom((map?.getZoom() || 13) + 1)}
+            className="w-10 h-10 bg-white rounded-lg shadow-md flex items-center justify-center hover:bg-gray-50 transition-colors"
+          >
+            <span className="text-lg font-bold">+</span>
+          </button>
+          <button 
+            onClick={() => map?.setZoom((map?.getZoom() || 13) - 1)}
+            className="w-10 h-10 bg-white rounded-lg shadow-md flex items-center justify-center hover:bg-gray-50 transition-colors"
+          >
+            <span className="text-lg font-bold">-</span>
+          </button>
+        </div>
+        
+        {/* Current Location Button */}
+        <div className="absolute bottom-4 right-4 z-10">
+          <button 
+            onClick={() => {
+              if (userLocation && map) {
+                map.setCenter(userLocation);
+                map.setZoom(15);
+              }
+            }}
+            className="w-12 h-12 bg-white rounded-full shadow-md flex items-center justify-center hover:bg-gray-50 transition-colors"
+          >
+            <Navigation className="h-5 w-5 text-blue-600" />
+          </button>
+        </div>
+
+        {/* Driver Count */}
+        {!isDriver && (
+          <div className="absolute bottom-4 left-4 z-10">
+            <div className="bg-white rounded-lg shadow-md px-3 py-2 flex items-center gap-2">
+              <Car className="h-4 w-4 text-orange-500" />
+              <span className="text-sm font-medium">{availableDrivers.filter(d => d.isAvailable).length} drivers nearby</span>
+            </div>
+          </div>
+        )}
+        
+        {/* Map Info */}
+        {!pickup && !destination && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="text-center p-8 bg-white/80 rounded-lg backdrop-blur-sm">
+              <MapPin className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600">
+                {isDriver ? "Your location is shown in blue" : "Enter pickup and destination to see route"}
+              </p>
+              {!isDriver && (
+                <p className="text-sm text-gray-500 mt-2">Orange car icons show available drivers</p>
+              )}
+            </div>
+          </div>
+        )}
+      </Card>
+      
+      <div className="absolute bottom-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded z-10">
+        Google Maps
+      </div>
+    </div>
+  );
+};
+
+export default EnhancedInteractiveMap;
