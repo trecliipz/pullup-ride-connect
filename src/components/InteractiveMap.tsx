@@ -9,6 +9,13 @@ interface InteractiveMapProps {
   onDistanceCalculated?: (distance: number) => void;
 }
 
+// Declare google as a global variable for TypeScript
+declare global {
+  interface Window {
+    google: typeof google;
+  }
+}
+
 const InteractiveMap = ({ pickup, destination, onDistanceCalculated }: InteractiveMapProps) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
@@ -42,13 +49,13 @@ const InteractiveMap = ({ pickup, destination, onDistanceCalculated }: Interacti
     if (!mapRef.current || !userLocation) return;
 
     // Check if Google Maps is loaded
-    if (typeof google === 'undefined') {
+    if (typeof window.google === 'undefined') {
       console.warn('Google Maps not loaded yet');
       return;
     }
 
     // Initialize map
-    const mapInstance = new google.maps.Map(mapRef.current, {
+    const mapInstance = new window.google.maps.Map(mapRef.current, {
       center: userLocation,
       zoom: 13,
       styles: [
@@ -148,8 +155,8 @@ const InteractiveMap = ({ pickup, destination, onDistanceCalculated }: Interacti
     setMap(mapInstance);
 
     // Initialize directions service and renderer
-    const directionsServiceInstance = new google.maps.DirectionsService();
-    const directionsRendererInstance = new google.maps.DirectionsRenderer({
+    const directionsServiceInstance = new window.google.maps.DirectionsService();
+    const directionsRendererInstance = new window.google.maps.DirectionsRenderer({
       suppressMarkers: false,
       polylineOptions: {
         strokeColor: '#FF6B6B',
@@ -163,7 +170,7 @@ const InteractiveMap = ({ pickup, destination, onDistanceCalculated }: Interacti
     setDirectionsRenderer(directionsRendererInstance);
 
     // Add current location marker
-    new google.maps.Marker({
+    new window.google.maps.Marker({
       position: userLocation,
       map: mapInstance,
       title: 'Your Location',
@@ -174,8 +181,8 @@ const InteractiveMap = ({ pickup, destination, onDistanceCalculated }: Interacti
             <circle cx="20" cy="20" r="8" fill="white"/>
           </svg>
         `),
-        scaledSize: new google.maps.Size(40, 40),
-        anchor: new google.maps.Point(20, 20)
+        scaledSize: new window.google.maps.Size(40, 40),
+        anchor: new window.google.maps.Point(20, 20)
       }
     });
 
@@ -189,13 +196,13 @@ const InteractiveMap = ({ pickup, destination, onDistanceCalculated }: Interacti
       return;
     }
 
-    const geocoder = new google.maps.Geocoder();
+    const geocoder = new window.google.maps.Geocoder();
     
     // Geocode pickup and destination
     Promise.all([
       new Promise<google.maps.LatLng>((resolve, reject) => {
         if (pickup === 'Current Location' && userLocation) {
-          resolve(new google.maps.LatLng(userLocation.lat, userLocation.lng));
+          resolve(new window.google.maps.LatLng(userLocation.lat, userLocation.lng));
         } else {
           geocoder.geocode({ address: pickup }, (results, status) => {
             if (status === 'OK' && results?.[0]) {
@@ -220,8 +227,8 @@ const InteractiveMap = ({ pickup, destination, onDistanceCalculated }: Interacti
       directionsService.route({
         origin: pickupLocation,
         destination: destinationLocation,
-        travelMode: google.maps.TravelMode.DRIVING,
-        unitSystem: google.maps.UnitSystem.METRIC,
+        travelMode: window.google.maps.TravelMode.DRIVING,
+        unitSystem: window.google.maps.UnitSystem.METRIC,
         avoidHighways: false,
         avoidTolls: false
       }, (result, status) => {
@@ -261,7 +268,7 @@ const InteractiveMap = ({ pickup, destination, onDistanceCalculated }: Interacti
     });
   }, [pickup, destination, directionsService, directionsRenderer, map, userLocation, onDistanceCalculated]);
 
-  if (typeof google === 'undefined') {
+  if (typeof window.google === 'undefined') {
     return (
       <div className="h-full w-full relative">
         <Card className="h-full bg-gradient-to-br from-blue-50 to-green-50 border-0 rounded-lg overflow-hidden">
