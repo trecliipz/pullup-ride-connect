@@ -212,7 +212,7 @@
   }
 
   .driver-avatar {
-    @apply w-15 h-15 rounded-full bg-gradient-to-r from-blue-400 to-blue-600 flex items-center justify-center text-white text-2xl font-bold;
+    @apply w-16 h-16 rounded-full bg-gradient-to-r from-blue-400 to-blue-600 flex items-center justify-center text-white text-2xl font-bold;
   }
 
   .eta-info {
