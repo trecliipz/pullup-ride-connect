@@ -1,183 +1,267 @@
 
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Navigation, MapPin, Clock, Shield, Star, Users } from "lucide-react";
+import { Navigation, MapPin, Flag, Phone, MessageCircle, Home, List, Wallet, User, Shield } from "lucide-react";
 import { Link } from "react-router-dom";
-import Navbar from "@/components/Navbar";
+import SecurityModal from "@/components/SecurityModal";
+import Notification from "@/components/Notification";
 
 const Index = () => {
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-pullup-50 via-white to-success-50">
-      <Navbar />
+  const [selectedRideType, setSelectedRideType] = useState('economy');
+  const [pickup, setPickup] = useState('Current Location');
+  const [destination, setDestination] = useState('');
+  const [rideStatus, setRideStatus] = useState('waiting');
+  const [showDriverInfo, setShowDriverInfo] = useState(false);
+  const [eta, setEta] = useState(3);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showSecurityModal, setShowSecurityModal] = useState(false);
+  const [notification, setNotification] = useState('');
+  const [activeNav, setActiveNav] = useState(0);
+
+  const rideOptions = [
+    {
+      type: 'economy',
+      name: '🚗 PullUp Economy',
+      details: '4 seats • 2 min away',
+      price: '$8.50'
+    },
+    {
+      type: 'comfort',
+      name: '🚙 PullUp Comfort',
+      details: '4 seats • Newer cars • Extra legroom',
+      price: '$12.30'
+    },
+    {
+      type: 'xl',
+      name: '🚐 PullUp XL',
+      details: '6 seats • SUVs and large cars',
+      price: '$15.75'
+    }
+  ];
+
+  const showNotification = (message: string) => {
+    setNotification(message);
+    setTimeout(() => setNotification(''), 3000);
+  };
+
+  const requestRide = () => {
+    if (!destination.trim()) {
+      showNotification('Please enter a destination');
+      return;
+    }
+
+    setIsLoading(true);
+    setRideStatus('searching');
+    
+    setTimeout(() => {
+      setIsLoading(false);
+      setShowDriverInfo(true);
+      setRideStatus('found');
+      showNotification('Driver found! Mike is on the way');
       
-      {/* Hero Section */}
-      <section className="relative pt-20 pb-32 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center animate-fade-in">
-            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold text-gray-900 mb-6">
-              Your ride is just a{" "}
-              <span className="gradient-bg bg-clip-text text-transparent">
-                PullUp
-              </span>{" "}
-              away
-            </h1>
-            <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-              Safe, reliable, and affordable rides at your fingertips. 
-              Experience the future of transportation with PullUp.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link to="/book">
-                <Button 
-                  size="lg" 
-                  className="w-full sm:w-auto px-8 py-4 text-lg font-semibold gradient-bg hover:opacity-90 transition-all duration-300 transform hover:scale-105"
+      // Start countdown
+      const countdown = setInterval(() => {
+        setEta(prev => {
+          if (prev <= 1) {
+            clearInterval(countdown);
+            showNotification('Your driver has arrived!');
+            setRideStatus('in-progress');
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 60000);
+    }, 3000);
+  };
+
+  const scheduleRide = () => {
+    showNotification('Schedule ride feature coming soon!');
+  };
+
+  const navItems = [
+    { icon: Home, label: 'Home', action: () => { setActiveNav(0); showNotification('Home screen active'); } },
+    { icon: List, label: 'Activity', action: () => { setActiveNav(1); showNotification('Activity history loaded'); } },
+    { icon: Wallet, label: 'Wallet', action: () => { setActiveNav(2); showNotification('Wallet: Current balance $45.60'); } },
+    { icon: User, label: 'Account', action: () => { setActiveNav(3); showNotification('Account settings loaded'); } },
+    { icon: Shield, label: 'Security', action: () => { setActiveNav(4); setShowSecurityModal(true); } }
+  ];
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-purple-600 via-blue-600 to-purple-800 p-5">
+      <div className="flex h-[calc(100vh-40px)] bg-white rounded-3xl overflow-hidden shadow-2xl">
+        {/* Sidebar */}
+        <div className="w-96 bg-gradient-to-b from-slate-700 to-slate-800 text-white flex flex-col">
+          {/* Header */}
+          <div className="p-8 bg-white/10 backdrop-blur-lg">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-12 h-12 bg-gradient-to-r from-orange-400 to-red-500 rounded-2xl flex items-center justify-center">
+                <Navigation className="h-7 w-7 text-white" />
+              </div>
+              <span className="text-2xl font-bold">PullUp</span>
+            </div>
+            
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-gradient-to-r from-orange-400 to-red-500 rounded-full flex items-center justify-center text-xl font-bold">
+                JD
+              </div>
+              <div>
+                <div className="font-bold">John Doe</div>
+                <div className="text-sm opacity-80">⭐ 4.9 Rating</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Main Content */}
+          <div className="flex-1 p-8 overflow-y-auto">
+            {/* Location Inputs */}
+            <div className="space-y-4 mb-8">
+              <div className="relative">
+                <MapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 text-orange-500 h-5 w-5" />
+                <input
+                  type="text"
+                  value={pickup}
+                  onChange={(e) => setPickup(e.target.value)}
+                  className="w-full pl-12 pr-4 py-4 bg-white/10 border-2 border-white/20 rounded-2xl text-white placeholder-white/70 focus:outline-none focus:border-orange-500 focus:bg-white/20 transition-all"
+                  placeholder="Pickup location"
+                />
+              </div>
+              <div className="relative">
+                <Flag className="absolute left-4 top-1/2 transform -translate-y-1/2 text-orange-500 h-5 w-5" />
+                <input
+                  type="text"
+                  value={destination}
+                  onChange={(e) => setDestination(e.target.value)}
+                  className="w-full pl-12 pr-4 py-4 bg-white/10 border-2 border-white/20 rounded-2xl text-white placeholder-white/70 focus:outline-none focus:border-orange-500 focus:bg-white/20 transition-all"
+                  placeholder="Where to?"
+                />
+              </div>
+            </div>
+
+            {/* Ride Options */}
+            <div className="space-y-4 mb-8">
+              {rideOptions.map((option) => (
+                <div
+                  key={option.type}
+                  onClick={() => setSelectedRideType(option.type)}
+                  className={`p-5 rounded-2xl cursor-pointer transition-all transform hover:scale-[1.02] hover:bg-white/20 ${
+                    selectedRideType === option.type 
+                      ? 'bg-orange-500/20 border-2 border-orange-500' 
+                      : 'bg-white/10 border-2 border-transparent'
+                  }`}
                 >
-                  <Navigation className="mr-2 h-5 w-5" />
-                  Book a Ride
-                </Button>
-              </Link>
-              <Button 
-                variant="outline" 
-                size="lg"
-                className="w-full sm:w-auto px-8 py-4 text-lg font-semibold border-2 border-pullup-500 text-pullup-600 hover:bg-pullup-50"
+                  <div className="flex justify-between items-center mb-2">
+                    <div className="font-bold text-lg">{option.name}</div>
+                    <div className="text-xl font-bold text-orange-500">{option.price}</div>
+                  </div>
+                  <div className="text-sm opacity-80">{option.details}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-4">
+              <Button
+                onClick={requestRide}
+                className="flex-1 py-4 bg-gradient-to-r from-orange-400 to-red-500 hover:from-orange-500 hover:to-red-600 text-white font-bold rounded-2xl text-lg transform hover:scale-[1.02] transition-all"
               >
-                Learn More
+                Request PullUp
+              </Button>
+              <Button
+                onClick={scheduleRide}
+                variant="outline"
+                className="flex-1 py-4 bg-white/20 border-2 border-white/30 text-white font-bold rounded-2xl text-lg hover:bg-white/30 transform hover:scale-[1.02] transition-all"
+              >
+                Schedule
               </Button>
             </div>
+
+            {/* Loading */}
+            {isLoading && (
+              <div className="text-center mt-6">
+                <div className="inline-block w-8 h-8 border-4 border-white/30 border-t-orange-500 rounded-full animate-spin mb-2"></div>
+                <p>Finding your driver...</p>
+              </div>
+            )}
           </div>
         </div>
-        
-        {/* Floating Elements */}
-        <div className="absolute top-1/4 left-10 w-20 h-20 bg-pullup-100 rounded-full opacity-60 animate-pulse"></div>
-        <div className="absolute top-1/3 right-16 w-16 h-16 bg-success-100 rounded-full opacity-60 animate-pulse delay-1000"></div>
-        <div className="absolute bottom-1/4 left-1/4 w-12 h-12 bg-pullup-200 rounded-full opacity-60 animate-pulse delay-500"></div>
-      </section>
 
-      {/* Features Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              Why Choose PullUp?
-            </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              We're revolutionizing transportation with cutting-edge technology and unmatched service.
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[
-              {
-                icon: MapPin,
-                title: "Real-time Tracking",
-                description: "Track your ride in real-time with our advanced GPS technology and get accurate ETAs."
-              },
-              {
-                icon: Clock,
-                title: "Quick & Reliable",
-                description: "Average pickup time under 5 minutes. We value your time as much as you do."
-              },
-              {
-                icon: Shield,
-                title: "Safe & Secure",
-                description: "All drivers are thoroughly vetted and vehicles are regularly inspected for your safety."
-              },
-              {
-                icon: Star,
-                title: "5-Star Service",
-                description: "Consistently rated as the best ride-sharing service with 4.9+ star average rating."
-              },
-              {
-                icon: Users,
-                title: "Community Driven",
-                description: "Built by the community, for the community. Join millions of satisfied riders."
-              },
-              {
-                icon: Navigation,
-                title: "Smart Routing",
-                description: "AI-powered route optimization ensures you reach your destination via the fastest route."
-              }
-            ].map((feature, index) => (
-              <Card 
-                key={index} 
-                className="p-6 hover:shadow-lg transition-all duration-300 transform hover:-translate-y-2 border-0 shadow-md"
-              >
-                <div className="flex items-center justify-center w-12 h-12 bg-pullup-100 rounded-lg mb-4">
-                  <feature.icon className="h-6 w-6 text-pullup-600" />
+        {/* Map Container */}
+        <div className="flex-1 relative bg-gradient-to-br from-blue-400 to-blue-600">
+          {/* Driver Info Overlay */}
+          {showDriverInfo && (
+            <div className="absolute top-5 right-5 bg-white rounded-2xl p-6 shadow-xl min-w-[280px] z-10">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-15 h-15 bg-gradient-to-r from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white text-2xl font-bold">
+                  MK
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                  {feature.title}
-                </h3>
-                <p className="text-gray-600">
-                  {feature.description}
-                </p>
-              </Card>
-            ))}
+                <div>
+                  <div className="font-bold text-lg">Mike Chen</div>
+                  <div className="text-gray-600">⭐ 4.95 • Toyota Camry</div>
+                  <div className="text-gray-500 text-sm">License: ABC-123</div>
+                </div>
+              </div>
+              
+              <div className="bg-gray-100 rounded-xl p-4 text-center mb-4">
+                <div className="text-2xl font-bold text-slate-800">
+                  {eta > 0 ? `${eta} min` : 'Arrived'}
+                </div>
+                <div className="text-gray-600">
+                  {eta > 0 ? 'Driver arriving' : 'Driver has arrived'}
+                </div>
+              </div>
+              
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => showNotification('Calling driver...')}
+                  variant="outline"
+                  className="flex-1 gap-2"
+                >
+                  <Phone className="h-4 w-4" />
+                  Call
+                </Button>
+                <Button
+                  onClick={() => showNotification('Opening chat with driver...')}
+                  variant="outline"
+                  className="flex-1 gap-2"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  Message
+                </Button>
+              </div>
+            </div>
+          )}
+          
+          {/* Map placeholder */}
+          <div className="w-full h-full flex items-center justify-center text-white text-2xl font-bold">
+            Interactive Map Area
           </div>
         </div>
-      </section>
 
-      {/* CTA Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 gradient-bg">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-4xl font-bold text-white mb-4">
-            Ready to Experience PullUp?
-          </h2>
-          <p className="text-xl text-white/90 mb-8">
-            Join millions of riders who trust PullUp for their daily transportation needs.
-          </p>
-          <Link to="/book">
-            <Button 
-              size="lg" 
-              variant="secondary"
-              className="px-8 py-4 text-lg font-semibold bg-white text-pullup-600 hover:bg-gray-50 transition-all duration-300 transform hover:scale-105"
+        {/* Bottom Navigation */}
+        <div className="absolute bottom-0 left-0 right-0 bg-white p-5 flex justify-around shadow-lg">
+          {navItems.map((item, index) => (
+            <div
+              key={index}
+              onClick={item.action}
+              className={`flex flex-col items-center gap-1 cursor-pointer transition-all transform hover:scale-110 ${
+                activeNav === index ? 'text-orange-500' : 'text-gray-500'
+              }`}
             >
-              <Navigation className="mr-2 h-5 w-5" />
-              Start Your Journey
-            </Button>
-          </Link>
+              <item.icon className="h-6 w-6" />
+              <span className="text-sm">{item.label}</span>
+            </div>
+          ))}
         </div>
-      </section>
+      </div>
 
-      {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div>
-              <h3 className="text-xl font-bold mb-4">PullUp</h3>
-              <p className="text-gray-400">
-                Your trusted ride-sharing partner for safe, reliable, and affordable transportation.
-              </p>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Company</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li><Link to="/support" className="hover:text-white transition-colors">Support</Link></li>
-                <li><Link to="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link></li>
-                <li><Link to="/terms" className="hover:text-white transition-colors">Terms of Service</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Services</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li><Link to="/book" className="hover:text-white transition-colors">Book a Ride</Link></li>
-                <li><Link to="/history" className="hover:text-white transition-colors">Trip History</Link></li>
-                <li><Link to="/profile" className="hover:text-white transition-colors">Profile</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Contact</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li>support@pullup.com</li>
-                <li>1-800-PULLUP</li>
-                <li>24/7 Customer Support</li>
-              </ul>
-            </div>
-          </div>
-          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 PullUp. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
+      {/* Security Modal */}
+      <SecurityModal 
+        isOpen={showSecurityModal} 
+        onClose={() => setShowSecurityModal(false)} 
+      />
+
+      {/* Notification */}
+      <Notification message={notification} />
     </div>
   );
 };
