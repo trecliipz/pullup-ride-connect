@@ -58,6 +58,16 @@
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
+    /* Prevent zoom on iOS */
+    -webkit-text-size-adjust: 100%;
+    /* Smooth scrolling */
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Mobile viewport optimizations */
+  html {
+    /* Prevent horizontal scrolling */
+    overflow-x: hidden;
   }
 }
 
@@ -88,6 +98,29 @@
   .animate-slide-in {
     animation: slideIn 0.3s ease-out;
   }
+
+  /* Mobile-first responsive design */
+  .mobile-sidebar {
+    @apply h-screen overflow-y-auto;
+  }
+
+  .mobile-map {
+    @apply min-h-[50vh] w-full;
+  }
+
+  /* Touch-friendly buttons */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+
+  /* Safe area padding for mobile devices */
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
 }
 
 @keyframes slideIn {
@@ -98,5 +131,61 @@
   to {
     transform: translateX(0);
     opacity: 1;
+  }
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .app-container {
+    @apply m-0 rounded-none h-screen;
+  }
+  
+  /* Prevent zoom on input focus */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+  
+  /* Optimize button sizes for touch */
+  button {
+    @apply touch-target;
+  }
+  
+  /* Improve text readability on mobile */
+  .mobile-text {
+    @apply text-base leading-relaxed;
+  }
+}
+
+/* High DPI displays */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .crisp-edges {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
+}
+
+/* Landscape mobile optimization */
+@media (max-width: 768px) and (orientation: landscape) {
+  .landscape-optimize {
+    @apply flex-row;
+  }
+  
+  .landscape-sidebar {
+    @apply w-1/2 h-screen;
+  }
+  
+  .landscape-map {
+    @apply w-1/2 h-screen;
+  }
+}
+
+/* Dark mode for mobile */
+@media (prefers-color-scheme: dark) {
+  .mobile-dark {
+    @apply bg-gray-900 text-white;
   }
 }
