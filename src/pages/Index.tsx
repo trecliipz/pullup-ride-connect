@@ -1,24 +1,29 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { Navigation, MapPin, Flag, Phone, MessageCircle, Home, List, Wallet, User, Shield, Car, Send, X, Calendar, Clock } from "lucide-react";
+import { Navigation, MapPin, Flag, Phone, MessageCircle, Home, List, Wallet, User, Shield, Car, Send, X, Calendar, Clock, Share2, CheckCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import Notification from "@/components/Notification";
 import EnhancedInteractiveMap from "@/components/EnhancedInteractiveMap";
 import DriverDashboard from "@/components/DriverDashboard";
 import NavigationPages from "@/components/NavigationPages";
 import RideRating from "@/components/RideRating";
+import RideActions from "@/components/RideActions";
 import { useUser } from '@/context/UserContext';
 import { RideRequest } from '@/types/user';
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useNavigate } from 'react-router-dom';
 
 const Index = () => {
+  const navigate = useNavigate();
   const [selectedRideType, setSelectedRideType] = useState('economy');
   const [pickup, setPickup] = useState('Current Location');
   const [destination, setDestination] = useState('');
   const [rideStatus, setRideStatus] = useState('waiting');
   const [showDriverInfo, setShowDriverInfo] = useState(false);
   const [eta, setEta] = useState(3);
+  const [pickupTime, setPickupTime] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [notification, setNotification] = useState('');
   const [activeNav, setActiveNav] = useState('home');
@@ -85,6 +90,10 @@ const Index = () => {
 
   const handleDistanceCalculated = (distanceInKm: number) => {
     setDistance(distanceInKm);
+  };
+
+  const handlePickupTimeCalculated = (time: number) => {
+    setPickupTime(time);
   };
 
   const requestRide = () => {
@@ -240,6 +249,41 @@ const Index = () => {
     setDestination('');
   };
 
+  const handleCancelRide = () => {
+    if (activeRideRequest) {
+      showNotification('Ride cancelled successfully');
+      setActiveRideRequest(null);
+      setRideStatus('waiting');
+      setShowDriverInfo(false);
+      setDestination('');
+    }
+  };
+
+  const handleCompleteRide = () => {
+    if (activeRideRequest) {
+      setRideStatus('completed');
+      setShowDriverInfo(false);
+      setShowRating(true);
+      showNotification('Ride completed!');
+    }
+  };
+
+  const handleShareRide = () => {
+    if (activeRideRequest) {
+      const shareText = `I'm on a PullUp ride from ${activeRideRequest.pickup.address} to ${activeRideRequest.destination.address}. Track my trip!`;
+      if (navigator.share) {
+        navigator.share({
+          title: 'PullUp Ride Share',
+          text: shareText,
+          url: window.location.href
+        });
+      } else {
+        navigator.clipboard.writeText(shareText);
+        showNotification('Ride details copied to clipboard!');
+      }
+    }
+  };
+
   const sendMessage = () => {
     if (!newMessage.trim() || !activeRideRequest) return;
     
@@ -274,6 +318,10 @@ const Index = () => {
   ];
 
   const handleNavClick = (navId: string) => {
+    if (navId === 'wallet') {
+      navigate('/payment');
+      return;
+    }
     setActiveNav(navId);
     if (navId === 'home') {
       showNotification('Home screen active');
@@ -325,8 +373,11 @@ const Index = () => {
             />
           </div>
           {distance > 0 && (
-            <div className="text-center text-sm lg:text-base text-white/80">
-              Distance: {distance.toFixed(1)} km
+            <div className="text-center text-sm lg:text-base text-white/80 space-y-1">
+              <div>Distance: {distance.toFixed(1)} km</div>
+              {pickupTime > 0 && (
+                <div>Estimated pickup: {pickupTime} minutes</div>
+              )}
             </div>
           )}
         </div>
@@ -431,6 +482,55 @@ const Index = () => {
     );
   };
 
+  // Show active ride UI when ride is active
+  if (activeRideRequest && rideStatus !== 'waiting' && !isDriver) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-600 via-blue-600 to-purple-800 overflow-hidden">
+        <div className="app-container flex flex-col lg:flex-row h-screen bg-white lg:rounded-[20px] lg:m-5 overflow-hidden shadow-2xl">
+          {/* Ride Actions Sidebar */}
+          <div className="w-full lg:w-[400px] bg-gradient-to-b from-slate-700 to-slate-800 text-white flex flex-col h-[60vh] lg:h-full">
+            <div className="p-6 lg:p-8">
+              <div className="logo text-2xl lg:text-[32px] font-bold text-white mb-4 flex items-center gap-3">
+                <Navigation className="h-8 w-8 lg:h-10 lg:w-10 text-orange-500" />
+                PullUp - Active Ride
+              </div>
+              <RideActions
+                activeRideRequest={activeRideRequest}
+                onCancelRide={handleCancelRide}
+                onCompleteRide={handleCompleteRide}
+                onShareRide={handleShareRide}
+                eta={eta}
+                rideStatus={rideStatus}
+              />
+            </div>
+          </div>
+
+          {/* Map Container */}
+          <div className="map-container flex-1 relative bg-gradient-to-br from-blue-400 to-blue-600 h-[40vh] lg:h-full">
+            <EnhancedInteractiveMap 
+              pickup={pickup}
+              destination={destination}
+              onDistanceCalculated={handleDistanceCalculated}
+              onPickupTimeCalculated={handlePickupTimeCalculated}
+              activeRideRequest={activeRideRequest}
+            />
+          </div>
+        </div>
+
+        {/* Rating Modal */}
+        {showRating && activeRideRequest && (
+          <RideRating
+            rideRequest={activeRideRequest}
+            driverName={availableDrivers.find(d => d.id === activeRideRequest.driverId)?.name || 'Driver'}
+            onSubmit={handleRatingSubmit}
+          />
+        )}
+
+        <Notification message={notification} />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-600 via-blue-600 to-purple-800 overflow-hidden">
       <div className="app-container flex flex-col lg:flex-row h-screen bg-white lg:rounded-[20px] lg:m-5 overflow-hidden shadow-2xl">
@@ -469,11 +569,12 @@ const Index = () => {
             pickup={pickup}
             destination={destination}
             onDistanceCalculated={handleDistanceCalculated}
+            onPickupTimeCalculated={handlePickupTimeCalculated}
             activeRideRequest={activeRideRequest}
           />
           
-          {/* Driver Info Overlay */}
-          {showDriverInfo && activeRideRequest && (
+          {/* Driver Info Overlay - only show when not in active ride mode */}
+          {showDriverInfo && activeRideRequest && rideStatus === 'found' && (
             <div className="map-overlay absolute top-4 lg:top-5 right-4 lg:right-5 bg-white rounded-2xl p-4 lg:p-5 shadow-xl min-w-[220px] lg:min-w-[250px] z-10">
               <div className="driver-info flex items-center gap-3 lg:gap-[15px] mb-3 lg:mb-[15px]">
                 <div className="driver-avatar w-12 h-12 lg:w-16 lg:h-16 rounded-full bg-gradient-to-r from-blue-400 to-blue-600 flex items-center justify-center text-white text-lg lg:text-2xl font-bold">
@@ -565,6 +666,11 @@ const Index = () => {
                 <p className="text-sm text-blue-700">
                   <strong>Estimated fare:</strong> ${calculatePrice(distance, selectedRideType).toFixed(2)}
                 </p>
+                {pickupTime > 0 && (
+                  <p className="text-sm text-blue-700">
+                    <strong>Pickup time:</strong> ~{pickupTime} minutes
+                  </p>
+                )}
               </div>
               <div className="flex gap-3 pt-4">
                 <Button onClick={handleScheduleConfirm} className="flex-1">

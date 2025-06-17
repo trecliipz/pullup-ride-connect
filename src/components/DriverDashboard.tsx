@@ -3,9 +3,10 @@ import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Car, MapPin, Phone, MessageCircle, CheckCircle, XCircle, Home, List, Wallet, User, Shield } from "lucide-react";
+import { Car, MapPin, Phone, MessageCircle, CheckCircle, XCircle, Home, List, Wallet, User, Shield, Share2, X } from "lucide-react";
 import { useUser } from '@/context/UserContext';
 import NavigationPages from './NavigationPages';
+import RideActions from './RideActions';
 
 const DriverDashboard = () => {
   const [activeNav, setActiveNav] = useState('home');
@@ -14,7 +15,8 @@ const DriverDashboard = () => {
     pendingRequests, 
     setPendingRequests, 
     setActiveRideRequest, 
-    activeRideRequest 
+    activeRideRequest,
+    setRideHistory 
   } = useUser();
 
   const navItems = [
@@ -47,6 +49,39 @@ const DriverDashboard = () => {
     setPendingRequests(prev => prev.filter(req => req.id !== requestId));
   };
 
+  const handleCancelRide = () => {
+    if (activeRideRequest) {
+      setActiveRideRequest(null);
+    }
+  };
+
+  const handleCompleteRide = () => {
+    if (activeRideRequest) {
+      const completedRide = {
+        ...activeRideRequest,
+        status: 'completed' as const,
+        completedAt: new Date()
+      };
+      setRideHistory(prev => [completedRide, ...prev]);
+      setActiveRideRequest(null);
+    }
+  };
+
+  const handleShareRide = () => {
+    if (activeRideRequest) {
+      const shareText = `Driver transporting passenger from ${activeRideRequest.pickup.address} to ${activeRideRequest.destination.address}`;
+      if (navigator.share) {
+        navigator.share({
+          title: 'PullUp Driver Update',
+          text: shareText,
+          url: window.location.href
+        });
+      } else {
+        navigator.clipboard.writeText(shareText);
+      }
+    }
+  };
+
   if (activeNav !== 'home') {
     return <NavigationPages activePage={activeNav} onNavigateHome={() => setActiveNav('home')} />;
   }
@@ -77,47 +112,16 @@ const DriverDashboard = () => {
         </CardContent>
       </Card>
 
-      {/* Current Ride */}
+      {/* Current Ride with Actions */}
       {activeRideRequest && (
-        <Card className="bg-blue-500/20 border-blue-500/30">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-white">Current Ride</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <div className="flex items-start gap-2">
-                <MapPin className="h-4 w-4 text-green-400 mt-1 flex-shrink-0" />
-                <div>
-                  <div className="text-white font-medium">Pickup</div>
-                  <div className="text-white/80 text-sm">{activeRideRequest.pickup.address}</div>
-                </div>
-              </div>
-              <div className="flex items-start gap-2">
-                <MapPin className="h-4 w-4 text-red-400 mt-1 flex-shrink-0" />
-                <div>
-                  <div className="text-white font-medium">Destination</div>
-                  <div className="text-white/80 text-sm">{activeRideRequest.destination.address}</div>
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex gap-2">
-              <Button size="sm" className="flex-1 bg-green-600 hover:bg-green-700">
-                <Phone className="h-4 w-4 mr-2" />
-                Call Rider
-              </Button>
-              <Button size="sm" className="flex-1 bg-blue-600 hover:bg-blue-700">
-                <MessageCircle className="h-4 w-4 mr-2" />
-                Message
-              </Button>
-            </div>
-            
-            <div className="bg-white/10 rounded-lg p-3">
-              <div className="text-white font-bold text-lg">${activeRideRequest.price.toFixed(2)}</div>
-              <div className="text-white/80 text-sm">{activeRideRequest.distance.toFixed(1)} km • {activeRideRequest.estimatedDuration} min</div>
-            </div>
-          </CardContent>
-        </Card>
+        <RideActions
+          activeRideRequest={activeRideRequest}
+          onCancelRide={handleCancelRide}
+          onCompleteRide={handleCompleteRide}
+          onShareRide={handleShareRide}
+          eta={0}
+          rideStatus="in-progress"
+        />
       )}
 
       {/* Ride Requests */}

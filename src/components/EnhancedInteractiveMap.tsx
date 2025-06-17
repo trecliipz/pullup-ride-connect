@@ -6,6 +6,7 @@ interface EnhancedInteractiveMapProps {
   pickup: string;
   destination: string;
   onDistanceCalculated: (distance: number) => void;
+  onPickupTimeCalculated?: (time: number) => void;
   activeRideRequest?: any;
 }
 
@@ -13,6 +14,7 @@ const EnhancedInteractiveMap: React.FC<EnhancedInteractiveMapProps> = ({
   pickup,
   destination,
   onDistanceCalculated,
+  onPickupTimeCalculated,
   activeRideRequest
 }) => {
   const mapRef = useRef<HTMLDivElement>(null);
@@ -116,6 +118,18 @@ const EnhancedInteractiveMap: React.FC<EnhancedInteractiveMapProps> = ({
     return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
   };
 
+  // Calculate distance between two points
+  const calculateDistance = (point1: { lat: number; lng: number }, point2: { lat: number; lng: number }) => {
+    const R = 6371; // Earth's radius in km
+    const dLat = (point2.lat - point1.lat) * Math.PI / 180;
+    const dLon = (point2.lng - point1.lng) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(point1.lat * Math.PI / 180) * Math.cos(point2.lat * Math.PI / 180) *
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  };
+
   useEffect(() => {
     const loadMap = async () => {
       if (!window.google || !mapRef.current) return;
@@ -154,8 +168,8 @@ const EnhancedInteractiveMap: React.FC<EnhancedInteractiveMapProps> = ({
         suppressMarkers: true,
         polylineOptions: {
           strokeColor: '#3B82F6',
-          strokeWeight: 4,
-          strokeOpacity: 0.8
+          strokeWeight: 6, // Bold route path
+          strokeOpacity: 0.9
         }
       });
       const newGeocoder = new window.google.maps.Geocoder();
@@ -177,8 +191,6 @@ const EnhancedInteractiveMap: React.FC<EnhancedInteractiveMapProps> = ({
     if (!map) return;
 
     const updateInterval = setInterval(() => {
-      // Simulate driver movement by slightly adjusting positions
-      // In a real app, this would fetch from your backend
       console.log('Auto-updating driver positions...');
     }, 8000);
 
@@ -193,6 +205,9 @@ const EnhancedInteractiveMap: React.FC<EnhancedInteractiveMapProps> = ({
     infoWindows.current.forEach(infoWindow => infoWindow.close());
     driverMarkers.current = [];
     infoWindows.current = [];
+
+    // Calculate nearest driver distance for pickup time estimation
+    let nearestDriverDistance = Infinity;
 
     // Add available drivers to map with enhanced car icons
     availableDrivers.forEach((driver) => {
@@ -218,6 +233,12 @@ const EnhancedInteractiveMap: React.FC<EnhancedInteractiveMapProps> = ({
           },
           zIndex: status === 'active' ? 2000 : status === 'available' ? 1500 : 1000
         });
+
+        // Calculate distance from driver to pickup location
+        if (currentUser?.currentLocation && status === 'available') {
+          const distance = calculateDistance(driver.currentLocation, currentUser.currentLocation);
+          nearestDriverDistance = Math.min(nearestDriverDistance, distance);
+        }
 
         const statusText = status === 'available' ? '🟢 Available' : 
                           status === 'active' ? '🔵 Your Driver' : '🔴 Busy';
@@ -254,7 +275,13 @@ const EnhancedInteractiveMap: React.FC<EnhancedInteractiveMapProps> = ({
         infoWindows.current.push(infoWindow);
       }
     });
-  }, [availableDrivers, activeRideRequest]);
+
+    // Calculate and report pickup time if we have both pickup location and available drivers
+    if (nearestDriverDistance !== Infinity && onPickupTimeCalculated) {
+      const estimatedPickupTime = Math.ceil(nearestDriverDistance * 2); // Rough estimate: 2 minutes per km
+      onPickupTimeCalculated(estimatedPickupTime);
+    }
+  }, [availableDrivers, activeRideRequest, currentUser, onPickupTimeCalculated]);
 
   // Handle route display when pickup and destination are entered
   useEffect(() => {
@@ -273,7 +300,6 @@ const EnhancedInteractiveMap: React.FC<EnhancedInteractiveMapProps> = ({
         if (pickup === 'Current Location' && currentUser?.currentLocation) {
           originCoords = currentUser.currentLocation;
           
-          // Add pickup marker
           const pickupMarker = new window.google.maps.Marker({
             position: currentUser.currentLocation,
             map: map,
@@ -287,7 +313,6 @@ const EnhancedInteractiveMap: React.FC<EnhancedInteractiveMapProps> = ({
           });
           routeMarkers.current.push(pickupMarker);
         } else if (pickup.trim()) {
-          // Geocode pickup address
           const pickupResult = await new Promise<google.maps.GeocoderResult[]>((resolve, reject) => {
             geocoder.geocode({ address: pickup }, (results, status) => {
               if (status === 'OK' && results) {
@@ -360,11 +385,20 @@ const EnhancedInteractiveMap: React.FC<EnhancedInteractiveMapProps> = ({
                     onDistanceCalculated(distanceInKm);
                   }
 
-                  // Fit map to show entire route
+                  // Fit map to show entire route and nearby drivers
                   const bounds = new window.google.maps.LatLngBounds();
                   bounds.extend(originCoords!);
                   bounds.extend(destinationCoords);
+                  
+                  // Include nearby drivers in bounds
+                  availableDrivers.forEach(driver => {
+                    if (driver.currentLocation) {
+                      bounds.extend(driver.currentLocation);
+                    }
+                  });
+                  
                   map.fitBounds(bounds);
+                  map.setZoom(Math.min(map.getZoom() || 13, 15)); // Limit max zoom
                 } else {
                   console.error('Directions request failed due to ' + status);
                 }
@@ -380,10 +414,9 @@ const EnhancedInteractiveMap: React.FC<EnhancedInteractiveMapProps> = ({
     if ((pickup.trim() && pickup !== 'Current Location') || (pickup === 'Current Location' && currentUser?.currentLocation) || destination.trim()) {
       processRoute();
     } else {
-      // Clear directions if no route
       directionsRenderer.setDirections({ routes: [] } as google.maps.DirectionsResult);
     }
-  }, [pickup, destination, directionsService, directionsRenderer, geocoder, onDistanceCalculated, currentUser, map]);
+  }, [pickup, destination, directionsService, directionsRenderer, geocoder, onDistanceCalculated, currentUser, map, availableDrivers]);
 
   return (
     <div className="relative w-full h-full">
