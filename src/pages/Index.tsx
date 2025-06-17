@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { Navigation, MapPin, Flag, Phone, MessageCircle, Home, List, Wallet, User, Shield, Car, Send, X } from "lucide-react";
+import { Navigation, MapPin, Flag, Phone, MessageCircle, Home, List, Wallet, User, Shield, Car, Send, X, Calendar, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import Notification from "@/components/Notification";
 import EnhancedInteractiveMap from "@/components/EnhancedInteractiveMap";
@@ -32,6 +32,9 @@ const Index = () => {
     comfort: 3.50,
     xl: 4.50
   });
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [scheduledDate, setScheduledDate] = useState('');
+  const [scheduledTime, setScheduledTime] = useState('');
 
   const { 
     currentUser, 
@@ -86,10 +89,9 @@ const Index = () => {
 
   const requestRide = () => {
     if (!destination.trim()) {
-      showNotification('Please enter a destination');
+      showNotification('Please enter a destination first');
       return;
     }
-
     if (distance === 0) {
       showNotification('Please wait for route calculation');
       return;
@@ -191,7 +193,31 @@ const Index = () => {
   };
 
   const scheduleRide = () => {
-    showNotification('Schedule ride feature coming soon!');
+    if (!destination.trim()) {
+      showNotification('Please enter a destination first');
+      return;
+    }
+    setShowScheduleModal(true);
+  };
+
+  const handleScheduleConfirm = () => {
+    if (!scheduledDate || !scheduledTime) {
+      showNotification('Please select both date and time');
+      return;
+    }
+    
+    const scheduledDateTime = new Date(`${scheduledDate}T${scheduledTime}`);
+    const now = new Date();
+    
+    if (scheduledDateTime <= now) {
+      showNotification('Please select a future date and time');
+      return;
+    }
+    
+    showNotification(`Ride scheduled for ${scheduledDateTime.toLocaleString()}`);
+    setShowScheduleModal(false);
+    setScheduledDate('');
+    setScheduledTime('');
   };
 
   const handleRatingSubmit = (rating: number, feedback: string) => {
@@ -329,18 +355,27 @@ const Index = () => {
         </div>
 
         {/* Action Buttons */}
-        <div className="action-buttons flex gap-3 lg:gap-[15px] mt-4 lg:mt-5">
+        <div className="action-buttons flex gap-3 lg:gap-[15px] mt-4 lg:mt-5 mb-6">
           <Button
             onClick={requestRide}
             className="btn btn-primary flex-1 py-3 lg:py-[15px] bg-gradient-to-r from-orange-400 to-red-500 hover:from-orange-500 hover:to-red-600 text-white font-bold rounded-2xl text-sm lg:text-base uppercase tracking-wider hover:transform hover:-translate-y-0.5 hover:shadow-lg transition-all duration-300"
-            disabled={isLoading}
+            disabled={isLoading || !destination.trim()}
           >
-            {isLoading ? 'Finding...' : 'Request PullUp'}
+            {isLoading ? (
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                Finding Driver...
+              </div>
+            ) : (
+              'Request PullUp'
+            )}
           </Button>
           <Button
             onClick={scheduleRide}
             className="btn btn-secondary flex-1 py-3 lg:py-[15px] bg-white/20 border-2 border-white/30 text-white font-bold rounded-2xl text-sm lg:text-base uppercase tracking-wider hover:bg-white/30 hover:transform hover:-translate-y-0.5 transition-all duration-300"
+            disabled={!destination.trim()}
           >
+            <Calendar className="h-4 w-4 mr-2" />
             Schedule
           </Button>
         </div>
@@ -486,6 +521,64 @@ const Index = () => {
           )}
         </div>
       </div>
+
+      {/* Schedule Ride Modal */}
+      {showScheduleModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-md">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                Schedule Ride
+              </CardTitle>
+              <Button
+                onClick={() => setShowScheduleModal(false)}
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Date</label>
+                <Input
+                  type="date"
+                  value={scheduledDate}
+                  onChange={(e) => setScheduledDate(e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Time</label>
+                <Input
+                  type="time"
+                  value={scheduledTime}
+                  onChange={(e) => setScheduledTime(e.target.value)}
+                />
+              </div>
+              <div className="bg-blue-50 p-3 rounded-lg">
+                <p className="text-sm text-blue-700">
+                  <strong>Route:</strong> {pickup} → {destination}
+                </p>
+                <p className="text-sm text-blue-700">
+                  <strong>Estimated fare:</strong> ${calculatePrice(distance, selectedRideType).toFixed(2)}
+                </p>
+              </div>
+              <div className="flex gap-3 pt-4">
+                <Button onClick={handleScheduleConfirm} className="flex-1">
+                  <Clock className="h-4 w-4 mr-2" />
+                  Confirm Schedule
+                </Button>
+                <Button variant="outline" onClick={() => setShowScheduleModal(false)}>
+                  Cancel
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Messaging Modal */}
       {showMessaging && activeRideRequest && (

@@ -1,258 +1,324 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Home, ArrowLeft, Activity, Wallet, User, Shield, Clock, Star, CreditCard, Plus } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { 
+  Home, 
+  List, 
+  Wallet, 
+  CreditCard, 
+  Plus, 
+  User, 
+  Shield, 
+  Lock, 
+  Key, 
+  Bell, 
+  Smartphone,
+  AlertTriangle,
+  CheckCircle
+} from "lucide-react";
 import { useUser } from '@/context/UserContext';
 import ProfileEditor from './ProfileEditor';
+import SecurityModal from './SecurityModal';
+import PaymentMethodModal from './PaymentMethodModal';
+import PhotoUploadModal from './PhotoUploadModal';
 
 interface NavigationPagesProps {
   activePage: string;
   onNavigateHome: () => void;
 }
 
-const NavigationPages = ({ activePage, onNavigateHome }: NavigationPagesProps) => {
-  const { rideHistory, currentUser } = useUser();
+const NavigationPages: React.FC<NavigationPagesProps> = ({ activePage, onNavigateHome }) => {
+  const { currentUser, rideHistory, updateProfile } = useUser();
+  const [showSecurityModal, setShowSecurityModal] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showPhotoModal, setShowPhotoModal] = useState(false);
+  const [paymentMethods, setPaymentMethods] = useState([
+    { id: '1', cardNumber: '****-****-****-1234', cardholderName: 'John Doe', expiryDate: '12/25', type: 'credit' }
+  ]);
+  const [notifications, setNotifications] = useState(true);
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
+
+  const handleAddPaymentMethod = (newMethod: any) => {
+    setPaymentMethods(prev => [...prev, newMethod]);
+  };
+
+  const handlePhotoUpdate = (photo: string) => {
+    updateProfile({ profilePhoto: photo });
+  };
 
   const renderActivityPage = () => (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Button
-            onClick={onNavigateHome}
-            variant="outline"
-            size="sm"
-            className="bg-white/20 border-white/30 text-white hover:bg-white/30"
-          >
-            <Home className="h-4 w-4 mr-2" />
-            Home
-          </Button>
-          <h2 className="text-xl font-bold text-white flex items-center gap-2">
-            <Activity className="h-6 w-6" />
-            Activity
-          </h2>
-        </div>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-bold text-white">Ride History</h2>
+        <Button
+          onClick={onNavigateHome}
+          variant="outline"
+          className="bg-white/20 border-white/30 text-white hover:bg-white/30"
+        >
+          <Home className="h-4 w-4 mr-2" />
+          Home
+        </Button>
       </div>
 
-      <Card className="bg-white/10 border-white/20">
-        <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
-            <Clock className="h-5 w-5" />
-            Recent Rides
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {rideHistory.length === 0 ? (
-            <div className="text-center py-8">
-              <Activity className="h-12 w-12 text-white/50 mx-auto mb-4" />
-              <p className="text-white/80">No ride history yet</p>
-              <p className="text-white/60 text-sm mt-2">Your completed rides will appear here</p>
-            </div>
-          ) : (
-            rideHistory.slice(0, 10).map((ride) => (
-              <div key={ride.id} className="bg-white/10 rounded-lg p-4 space-y-2">
-                <div className="flex justify-between items-start">
-                  <div className="space-y-2 flex-1">
-                    <div className="text-white font-medium text-sm">
-                      {ride.pickup.address} → {ride.destination.address}
-                    </div>
-                    <div className="text-white/70 text-xs">
-                      {new Date(ride.completedAt || ride.requestedAt).toLocaleDateString()} • {ride.distance.toFixed(1)} km
-                    </div>
-                    {ride.rating && (
-                      <div className="flex items-center gap-1">
-                        <Star className="h-3 w-3 text-yellow-400 fill-current" />
-                        <span className="text-yellow-400 text-xs">{ride.rating}/5</span>
-                      </div>
-                    )}
+      {rideHistory.length === 0 ? (
+        <Card className="bg-white/10 border-white/20">
+          <CardContent className="text-center py-12">
+            <List className="h-16 w-16 text-white/50 mx-auto mb-4" />
+            <p className="text-white/80 text-lg">No rides yet</p>
+            <p className="text-white/60">Your ride history will appear here</p>
+          </CardContent>
+        </Card>
+      ) : (
+        rideHistory.map((ride) => (
+          <Card key={ride.id} className="bg-white/10 border-white/20">
+            <CardContent className="p-4">
+              <div className="flex justify-between items-start mb-3">
+                <div className="flex-1">
+                  <div className="text-white font-medium mb-1">
+                    {ride.pickup.address} → {ride.destination.address}
                   </div>
-                  <div className="text-right">
-                    <div className="text-white font-bold">${ride.price.toFixed(2)}</div>
-                    <div className={`text-xs px-2 py-1 rounded ${
-                      ride.status === 'completed' ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400'
-                    }`}>
-                      {ride.status}
-                    </div>
+                  <div className="text-white/70 text-sm">
+                    {ride.completedAt?.toLocaleDateString()} • {ride.distance.toFixed(1)} km
                   </div>
                 </div>
+                <div className="text-right">
+                  <div className="text-green-400 font-bold">${ride.price.toFixed(2)}</div>
+                  <Badge variant="secondary" className="mt-1">
+                    {ride.status}
+                  </Badge>
+                </div>
               </div>
-            ))
-          )}
-        </CardContent>
-      </Card>
+              {ride.rating && (
+                <div className="text-yellow-400 text-sm">
+                  Rating: {'⭐'.repeat(ride.rating)}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        ))
+      )}
     </div>
   );
 
   const renderWalletPage = () => (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Button
-            onClick={onNavigateHome}
-            variant="outline"
-            size="sm"
-            className="bg-white/20 border-white/30 text-white hover:bg-white/30"
-          >
-            <Home className="h-4 w-4 mr-2" />
-            Home
-          </Button>
-          <h2 className="text-xl font-bold text-white flex items-center gap-2">
-            <Wallet className="h-6 w-6" />
-            Wallet
-          </h2>
-        </div>
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-bold text-white">Wallet</h2>
+        <Button
+          onClick={onNavigateHome}
+          variant="outline"
+          className="bg-white/20 border-white/30 text-white hover:bg-white/30"
+        >
+          <Home className="h-4 w-4 mr-2" />
+          Home
+        </Button>
       </div>
 
+      {/* Balance Card */}
       <Card className="bg-gradient-to-r from-green-500/20 to-blue-500/20 border-green-500/30">
         <CardContent className="p-6">
           <div className="text-center">
-            <div className="text-3xl font-bold text-white mb-2">$0.00</div>
-            <div className="text-white/80 text-sm">Available Balance</div>
+            <div className="text-3xl font-bold text-white mb-2">$25.50</div>
+            <div className="text-white/80">Available Balance</div>
           </div>
         </CardContent>
       </Card>
 
+      {/* Payment Methods */}
       <Card className="bg-white/10 border-white/20">
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-white flex items-center gap-2">
             <CreditCard className="h-5 w-5" />
             Payment Methods
           </CardTitle>
+          <Button
+            onClick={() => setShowPaymentModal(true)}
+            size="sm"
+            className="bg-orange-500 hover:bg-orange-600"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add
+          </Button>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="text-center py-8">
-            <CreditCard className="h-12 w-12 text-white/50 mx-auto mb-4" />
-            <p className="text-white/80 mb-4">No payment methods added</p>
-            <Button className="bg-orange-500 hover:bg-orange-600 text-white">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Payment Method
-            </Button>
-          </div>
+        <CardContent className="space-y-3">
+          {paymentMethods.map((method) => (
+            <div key={method.id} className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
+              <div className="flex items-center gap-3">
+                <CreditCard className="h-5 w-5 text-white/70" />
+                <div>
+                  <div className="text-white font-medium">{method.cardNumber}</div>
+                  <div className="text-white/70 text-sm">{method.cardholderName}</div>
+                </div>
+              </div>
+              <Badge variant="secondary">{method.type}</Badge>
+            </div>
+          ))}
         </CardContent>
       </Card>
 
-      <Card className="bg-white/10 border-white/20">
-        <CardHeader>
-          <CardTitle className="text-white">Transaction History</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8">
-            <Wallet className="h-12 w-12 text-white/50 mx-auto mb-4" />
-            <p className="text-white/80">No transactions yet</p>
-            <p className="text-white/60 text-sm mt-2">Your payment history will appear here</p>
-          </div>
-        </CardContent>
-      </Card>
+      <PaymentMethodModal
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        onAddPayment={handleAddPaymentMethod}
+      />
     </div>
   );
 
   const renderAccountPage = () => (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Button
-            onClick={onNavigateHome}
-            variant="outline"
-            size="sm"
-            className="bg-white/20 border-white/30 text-white hover:bg-white/30"
-          >
-            <Home className="h-4 w-4 mr-2" />
-            Home
-          </Button>
-          <h2 className="text-xl font-bold text-white flex items-center gap-2">
-            <User className="h-6 w-6" />
-            Account Settings
-          </h2>
-        </div>
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-bold text-white">Account Settings</h2>
+        <Button
+          onClick={onNavigateHome}
+          variant="outline"
+          className="bg-white/20 border-white/30 text-white hover:bg-white/30"
+        >
+          <Home className="h-4 w-4 mr-2" />
+          Home
+        </Button>
       </div>
 
       <ProfileEditor />
+      
+      <PhotoUploadModal
+        isOpen={showPhotoModal}
+        onClose={() => setShowPhotoModal(false)}
+        onPhotoUpdate={handlePhotoUpdate}
+      />
     </div>
   );
 
   const renderSecurityPage = () => (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Button
-            onClick={onNavigateHome}
-            variant="outline"
-            size="sm"
-            className="bg-white/20 border-white/30 text-white hover:bg-white/30"
-          >
-            <Home className="h-4 w-4 mr-2" />
-            Home
-          </Button>
-          <h2 className="text-xl font-bold text-white flex items-center gap-2">
-            <Shield className="h-6 w-6" />
-            Security
-          </h2>
-        </div>
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-bold text-white">Security & Privacy</h2>
+        <Button
+          onClick={onNavigateHome}
+          variant="outline"
+          className="bg-white/20 border-white/30 text-white hover:bg-white/30"
+        >
+          <Home className="h-4 w-4 mr-2" />
+          Home
+        </Button>
       </div>
 
+      {/* Security Status */}
+      <Card className="bg-white/10 border-white/20">
+        <CardContent className="p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <Shield className="h-6 w-6 text-green-400" />
+            <div>
+              <h3 className="text-white font-semibold">Security Status</h3>
+              <p className="text-white/70 text-sm">Your account is secure</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <CheckCircle className="h-4 w-4 text-green-400" />
+            <span className="text-white/80 text-sm">All security features enabled</span>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Security Settings */}
       <Card className="bg-white/10 border-white/20">
         <CardHeader>
           <CardTitle className="text-white">Security Settings</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="space-y-4">
-            <div className="flex justify-between items-center p-4 bg-white/10 rounded-lg">
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
+            <div className="flex items-center gap-3">
+              <Key className="h-5 w-5 text-white/70" />
               <div>
                 <div className="text-white font-medium">Two-Factor Authentication</div>
-                <div className="text-white/70 text-sm">Add an extra layer of security</div>
+                <div className="text-white/70 text-sm">Add extra security to your account</div>
               </div>
-              <Button variant="outline" size="sm" className="bg-white/20 border-white/30 text-white hover:bg-white/30">
-                Enable
-              </Button>
             </div>
+            <Button
+              onClick={() => setTwoFactorEnabled(!twoFactorEnabled)}
+              variant={twoFactorEnabled ? "default" : "outline"}
+              size="sm"
+            >
+              {twoFactorEnabled ? 'Enabled' : 'Enable'}
+            </Button>
+          </div>
 
-            <div className="flex justify-between items-center p-4 bg-white/10 rounded-lg">
+          <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
+            <div className="flex items-center gap-3">
+              <Lock className="h-5 w-5 text-white/70" />
               <div>
                 <div className="text-white font-medium">Change Password</div>
-                <div className="text-white/70 text-sm">Update your account password</div>
+                <div className="text-white/70 text-sm">Update your password regularly</div>
               </div>
-              <Button variant="outline" size="sm" className="bg-white/20 border-white/30 text-white hover:bg-white/30">
-                Change
-              </Button>
             </div>
+            <Button variant="outline" size="sm">
+              Change
+            </Button>
+          </div>
 
-            <div className="flex justify-between items-center p-4 bg-white/10 rounded-lg">
+          <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
+            <div className="flex items-center gap-3">
+              <Bell className="h-5 w-5 text-white/70" />
               <div>
-                <div className="text-white font-medium">Login History</div>
-                <div className="text-white/70 text-sm">View recent account activity</div>
+                <div className="text-white font-medium">Security Notifications</div>
+                <div className="text-white/70 text-sm">Get alerts about account activity</div>
               </div>
-              <Button variant="outline" size="sm" className="bg-white/20 border-white/30 text-white hover:bg-white/30">
-                View
-              </Button>
             </div>
+            <Button
+              onClick={() => setNotifications(!notifications)}
+              variant={notifications ? "default" : "outline"}
+              size="sm"
+            >
+              {notifications ? 'On' : 'Off'}
+            </Button>
+          </div>
 
-            <div className="flex justify-between items-center p-4 bg-white/10 rounded-lg">
+          <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
+            <div className="flex items-center gap-3">
+              <Smartphone className="h-5 w-5 text-white/70" />
               <div>
-                <div className="text-white font-medium">Privacy Settings</div>
-                <div className="text-white/70 text-sm">Manage your data and privacy</div>
+                <div className="text-white font-medium">Login Devices</div>
+                <div className="text-white/70 text-sm">Manage your logged-in devices</div>
               </div>
-              <Button variant="outline" size="sm" className="bg-white/20 border-white/30 text-white hover:bg-white/30">
-                Manage
-              </Button>
             </div>
+            <Button variant="outline" size="sm">
+              Manage
+            </Button>
           </div>
         </CardContent>
       </Card>
+
+      {/* Privacy Policy */}
+      <Card className="bg-white/10 border-white/20">
+        <CardContent className="p-4">
+          <Button
+            onClick={() => setShowSecurityModal(true)}
+            variant="outline"
+            className="w-full bg-white/20 border-white/30 text-white hover:bg-white/30"
+          >
+            <Shield className="h-4 w-4 mr-2" />
+            View Privacy Policy & Security Details
+          </Button>
+        </CardContent>
+      </Card>
+
+      <SecurityModal
+        isOpen={showSecurityModal}
+        onClose={() => setShowSecurityModal(false)}
+      />
     </div>
   );
 
-  switch (activePage) {
-    case 'activity':
-      return renderActivityPage();
-    case 'wallet':
-      return renderWalletPage();
-    case 'account':
-      return renderAccountPage();
-    case 'security':
-      return renderSecurityPage();
-    default:
-      return null;
-  }
+  const pages = {
+    activity: renderActivityPage,
+    wallet: renderWalletPage,
+    account: renderAccountPage,
+    security: renderSecurityPage,
+  };
+
+  return pages[activePage as keyof typeof pages]?.() || null;
 };
 
 export default NavigationPages;

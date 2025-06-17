@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,10 +6,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Camera, User, Mail, Phone, Car, Save, Edit } from "lucide-react";
 import { useUser } from '@/context/UserContext';
+import PhotoUploadModal from './PhotoUploadModal';
 
 const ProfileEditor = () => {
   const { currentUser, updateProfile, isDriver } = useUser();
   const [isEditing, setIsEditing] = useState(false);
+  const [showPhotoModal, setShowPhotoModal] = useState(false);
   const [formData, setFormData] = useState({
     name: currentUser?.name || '',
     email: currentUser?.email || '',
@@ -73,6 +74,10 @@ const ProfileEditor = () => {
     setIsEditing(false);
   };
 
+  const handlePhotoUpdate = (photo: string) => {
+    updateProfile({ profilePhoto: photo });
+  };
+
   return (
     <div className="space-y-6">
       {/* Profile Picture Section */}
@@ -80,11 +85,22 @@ const ProfileEditor = () => {
         <CardContent className="p-6">
           <div className="flex flex-col items-center space-y-4">
             <div className="relative">
-              <div className="w-24 h-24 rounded-full bg-gradient-to-r from-orange-400 to-red-500 flex items-center justify-center text-2xl font-bold text-white">
-                {currentUser?.avatar}
-              </div>
-              <button className="absolute -bottom-2 -right-2 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-lg hover:bg-gray-50 transition-colors">
-                <Camera className="h-4 w-4 text-gray-600" />
+              {currentUser?.profilePhoto ? (
+                <img
+                  src={currentUser.profilePhoto}
+                  alt="Profile"
+                  className="w-24 h-24 rounded-full object-cover border-4 border-orange-500"
+                />
+              ) : (
+                <div className="w-24 h-24 rounded-full bg-gradient-to-r from-orange-400 to-red-500 flex items-center justify-center text-2xl font-bold text-white">
+                  {currentUser?.avatar}
+                </div>
+              )}
+              <button 
+                onClick={() => setShowPhotoModal(true)}
+                className="absolute -bottom-2 -right-2 w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center shadow-lg hover:bg-orange-600 transition-colors"
+              >
+                <Camera className="h-4 w-4 text-white" />
               </button>
             </div>
             <div className="text-center">
@@ -311,6 +327,12 @@ const ProfileEditor = () => {
           </CardContent>
         </Card>
       )}
+
+      <PhotoUploadModal
+        isOpen={showPhotoModal}
+        onClose={() => setShowPhotoModal(false)}
+        onPhotoUpdate={handlePhotoUpdate}
+      />
     </div>
   );
 };
