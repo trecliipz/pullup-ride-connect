@@ -1,24 +1,8 @@
 
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import React from 'react';
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { 
-  History, 
-  Wallet, 
-  User, 
-  Shield, 
-  MapPin, 
-  Clock, 
-  DollarSign,
-  Phone,
-  Mail,
-  Edit,
-  CreditCard,
-  Plus,
-  Home,
-  Star
-} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Home, ArrowLeft, Activity, Wallet, User, Shield, Clock, Star, CreditCard, Plus } from "lucide-react";
 import { useUser } from '@/context/UserContext';
 import ProfileEditor from './ProfileEditor';
 
@@ -28,128 +12,134 @@ interface NavigationPagesProps {
 }
 
 const NavigationPages = ({ activePage, onNavigateHome }: NavigationPagesProps) => {
-  const { currentUser, isDriver, switchUserType, rideHistory } = useUser();
-  const [balance] = useState(45.60);
-  const [showProfileEditor, setShowProfileEditor] = useState(false);
+  const { rideHistory, currentUser } = useUser();
 
   const renderActivityPage = () => (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold mb-6">Trip History</h2>
-        <Button variant="outline" onClick={onNavigateHome} className="mb-6">
-          <Home className="h-4 w-4 mr-2" />
-          Home
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button
+            onClick={onNavigateHome}
+            variant="outline"
+            size="sm"
+            className="bg-white/20 border-white/30 text-white hover:bg-white/30"
+          >
+            <Home className="h-4 w-4 mr-2" />
+            Home
+          </Button>
+          <h2 className="text-xl font-bold text-white flex items-center gap-2">
+            <Activity className="h-6 w-6" />
+            Activity
+          </h2>
+        </div>
       </div>
-      
-      {/* Recent Trips */}
-      <div className="space-y-4">
-        {rideHistory.length === 0 ? (
-          <Card>
-            <CardContent className="p-6 text-center text-gray-500">
-              No ride history yet. Take your first ride to see it here!
-            </CardContent>
-          </Card>
-        ) : (
-          rideHistory.map((trip) => (
-            <Card key={trip.id}>
-              <CardContent className="p-4">
+
+      <Card className="bg-white/10 border-white/20">
+        <CardHeader>
+          <CardTitle className="text-white flex items-center gap-2">
+            <Clock className="h-5 w-5" />
+            Recent Rides
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {rideHistory.length === 0 ? (
+            <div className="text-center py-8">
+              <Activity className="h-12 w-12 text-white/50 mx-auto mb-4" />
+              <p className="text-white/80">No ride history yet</p>
+              <p className="text-white/60 text-sm mt-2">Your completed rides will appear here</p>
+            </div>
+          ) : (
+            rideHistory.slice(0, 10).map((ride) => (
+              <div key={ride.id} className="bg-white/10 rounded-lg p-4 space-y-2">
                 <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Badge variant="outline" className="text-xs">{trip.status}</Badge>
-                      <span className="text-sm text-gray-500">{trip.requestedAt.toLocaleDateString()}</span>
+                  <div className="space-y-2 flex-1">
+                    <div className="text-white font-medium text-sm">
+                      {ride.pickup.address} → {ride.destination.address}
                     </div>
-                    <div className="space-y-1 mb-2">
-                      <div className="flex items-center gap-2 text-sm">
-                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                        <span>{trip.pickup.address}</span>
+                    <div className="text-white/70 text-xs">
+                      {new Date(ride.completedAt || ride.requestedAt).toLocaleDateString()} • {ride.distance.toFixed(1)} km
+                    </div>
+                    {ride.rating && (
+                      <div className="flex items-center gap-1">
+                        <Star className="h-3 w-3 text-yellow-400 fill-current" />
+                        <span className="text-yellow-400 text-xs">{ride.rating}/5</span>
                       </div>
-                      <div className="flex items-center gap-2 text-sm">
-                        <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                        <span>{trip.destination.address}</span>
-                      </div>
-                    </div>
-                    <div className="text-sm text-gray-600">
-                      Distance: {trip.distance.toFixed(1)} km
-                      {trip.rating && (
-                        <span className="ml-2">
-                          • ⭐ {trip.rating}/5
-                        </span>
-                      )}
-                    </div>
+                    )}
                   </div>
                   <div className="text-right">
-                    <div className="text-lg font-bold">${trip.price.toFixed(2)}</div>
+                    <div className="text-white font-bold">${ride.price.toFixed(2)}</div>
+                    <div className={`text-xs px-2 py-1 rounded ${
+                      ride.status === 'completed' ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400'
+                    }`}>
+                      {ride.status}
+                    </div>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          ))
-        )}
-      </div>
+              </div>
+            ))
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 
   const renderWalletPage = () => (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold mb-6">Wallet</h2>
-        <Button variant="outline" onClick={onNavigateHome} className="mb-6">
-          <Home className="h-4 w-4 mr-2" />
-          Home
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button
+            onClick={onNavigateHome}
+            variant="outline"
+            size="sm"
+            className="bg-white/20 border-white/30 text-white hover:bg-white/30"
+          >
+            <Home className="h-4 w-4 mr-2" />
+            Home
+          </Button>
+          <h2 className="text-xl font-bold text-white flex items-center gap-2">
+            <Wallet className="h-6 w-6" />
+            Wallet
+          </h2>
+        </div>
       </div>
-      
-      {/* Balance Card */}
-      <Card className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
+
+      <Card className="bg-gradient-to-r from-green-500/20 to-blue-500/20 border-green-500/30">
         <CardContent className="p-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <p className="text-blue-100 mb-1">Current Balance</p>
-              <p className="text-3xl font-bold">${balance.toFixed(2)}</p>
-            </div>
-            <Wallet className="h-12 w-12 text-blue-200" />
+          <div className="text-center">
+            <div className="text-3xl font-bold text-white mb-2">$0.00</div>
+            <div className="text-white/80 text-sm">Available Balance</div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Quick Actions */}
-      <div className="grid grid-cols-2 gap-4">
-        <Button className="h-16 flex flex-col gap-2">
-          <Plus className="h-5 w-5" />
-          Add Funds
-        </Button>
-        <Button variant="outline" className="h-16 flex flex-col gap-2">
-          <CreditCard className="h-5 w-5" />
-          Payment Methods
-        </Button>
-      </div>
-
-      {/* Transaction History */}
-      <Card>
+      <Card className="bg-white/10 border-white/20">
         <CardHeader>
-          <CardTitle>Recent Transactions</CardTitle>
+          <CardTitle className="text-white flex items-center gap-2">
+            <CreditCard className="h-5 w-5" />
+            Payment Methods
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="text-center py-8">
+            <CreditCard className="h-12 w-12 text-white/50 mx-auto mb-4" />
+            <p className="text-white/80 mb-4">No payment methods added</p>
+            <Button className="bg-orange-500 hover:bg-orange-600 text-white">
+              <Plus className="h-4 w-4 mr-2" />
+              Add Payment Method
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="bg-white/10 border-white/20">
+        <CardHeader>
+          <CardTitle className="text-white">Transaction History</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {rideHistory.slice(0, 5).map((transaction) => (
-              <div key={transaction.id} className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                    <MapPin className="h-5 w-5 text-blue-600" />
-                  </div>
-                  <div>
-                    <p className="font-medium">Trip Payment</p>
-                    <p className="text-sm text-gray-500">{transaction.requestedAt.toLocaleDateString()}</p>
-                  </div>
-                </div>
-                <p className="font-bold text-red-600">-${transaction.price.toFixed(2)}</p>
-              </div>
-            ))}
-            {rideHistory.length === 0 && (
-              <p className="text-center text-gray-500 py-4">No transactions yet</p>
-            )}
+          <div className="text-center py-8">
+            <Wallet className="h-12 w-12 text-white/50 mx-auto mb-4" />
+            <p className="text-white/80">No transactions yet</p>
+            <p className="text-white/60 text-sm mt-2">Your payment history will appear here</p>
           </div>
         </CardContent>
       </Card>
@@ -159,210 +149,110 @@ const NavigationPages = ({ activePage, onNavigateHome }: NavigationPagesProps) =
   const renderAccountPage = () => (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold mb-6">Account Settings</h2>
-        <Button variant="outline" onClick={onNavigateHome} className="mb-6">
-          <Home className="h-4 w-4 mr-2" />
-          Home
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button
+            onClick={onNavigateHome}
+            variant="outline"
+            size="sm"
+            className="bg-white/20 border-white/30 text-white hover:bg-white/30"
+          >
+            <Home className="h-4 w-4 mr-2" />
+            Home
+          </Button>
+          <h2 className="text-xl font-bold text-white flex items-center gap-2">
+            <User className="h-6 w-6" />
+            Account Settings
+          </h2>
+        </div>
       </div>
-      
-      {/* Profile Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Profile Information</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center gap-4">
-            <div className="w-20 h-20 rounded-full bg-gradient-to-r from-orange-400 to-red-500 flex items-center justify-center text-white text-2xl font-bold">
-              {currentUser?.avatar}
-            </div>
-            <div className="flex-1">
-              <h3 className="text-xl font-bold">{currentUser?.name}</h3>
-              <p className="text-gray-600">⭐ {currentUser?.rating} Rating</p>
-              <Badge variant={isDriver ? "default" : "secondary"}>
-                {isDriver ? "Driver Account" : "Rider Account"}
-              </Badge>
-            </div>
-            <Button variant="outline" size="sm" onClick={() => setShowProfileEditor(true)}>
-              <Edit className="h-4 w-4 mr-2" />
-              Edit
-            </Button>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-600">Email</label>
-              <div className="flex items-center gap-2">
-                <Mail className="h-4 w-4 text-gray-400" />
-                <span>{currentUser?.email}</span>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-600">Phone</label>
-              <div className="flex items-center gap-2">
-                <Phone className="h-4 w-4 text-gray-400" />
-                <span>{currentUser?.phone}</span>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
-      {/* Account Type Switch */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Account Type</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium">Switch Account Type</p>
-              <p className="text-sm text-gray-600">
-                Currently using as {isDriver ? "Driver" : "Rider"}
-              </p>
-            </div>
-            <Button onClick={switchUserType} variant="outline">
-              Switch to {isDriver ? "Rider" : "Driver"}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Vehicle Information (if driver) */}
-      {isDriver && currentUser?.vehicleInfo && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Vehicle Information</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium text-gray-600">Make & Model</label>
-                <p>{currentUser.vehicleInfo.make} {currentUser.vehicleInfo.model}</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-600">Year</label>
-                <p>{currentUser.vehicleInfo.year}</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-600">License Plate</label>
-                <p>{currentUser.vehicleInfo.licensePlate}</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-600">Color</label>
-                <p>{currentUser.vehicleInfo.color}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      <ProfileEditor />
     </div>
   );
 
   const renderSecurityPage = () => (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold mb-6">🛡️ Security & Privacy</h2>
-        <Button variant="outline" onClick={onNavigateHome} className="mb-6">
-          <Home className="h-4 w-4 mr-2" />
-          Home
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button
+            onClick={onNavigateHome}
+            variant="outline"
+            size="sm"
+            className="bg-white/20 border-white/30 text-white hover:bg-white/30"
+          >
+            <Home className="h-4 w-4 mr-2" />
+            Home
+          </Button>
+          <h2 className="text-xl font-bold text-white flex items-center gap-2">
+            <Shield className="h-6 w-6" />
+            Security
+          </h2>
+        </div>
       </div>
-      
-      <div className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>🔐 Data Protection</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-gray-600 leading-relaxed">
-              PullUp employs industry-standard encryption to protect your personal information, 
-              payment details, and location data. All data transmission is secured using TLS 1.3 
-              encryption protocols.
-            </p>
-          </CardContent>
-        </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>📍 Location Privacy</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-gray-600 leading-relaxed">
-              Location data is only collected when the app is in use and is necessary for ride 
-              matching and navigation. Historical location data is automatically deleted after 7 days.
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>👥 Driver & Rider Safety</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-gray-600 leading-relaxed">
-              All drivers undergo comprehensive background checks, including criminal history and 
-              driving record verification. Real-time GPS tracking is active during all rides.
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>🚨 Emergency Features</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <p className="text-gray-600">Emergency assistance is available 24/7:</p>
-              <ul className="list-disc list-inside space-y-1 text-gray-600">
-                <li>Press Ctrl+E for emergency services</li>
-                <li>In-app emergency button</li>
-                <li>Real-time ride tracking</li>
-                <li>24/7 support hotline: 1-800-PULLUP-1</li>
-              </ul>
+      <Card className="bg-white/10 border-white/20">
+        <CardHeader>
+          <CardTitle className="text-white">Security Settings</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="space-y-4">
+            <div className="flex justify-between items-center p-4 bg-white/10 rounded-lg">
+              <div>
+                <div className="text-white font-medium">Two-Factor Authentication</div>
+                <div className="text-white/70 text-sm">Add an extra layer of security</div>
+              </div>
+              <Button variant="outline" size="sm" className="bg-white/20 border-white/30 text-white hover:bg-white/30">
+                Enable
+              </Button>
             </div>
-          </CardContent>
-        </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>📞 Contact & Support</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2 text-gray-600">
-              <p>Security concerns: security@pullup.com</p>
-              <p>General support: support@pullup.com</p>
-              <p>Emergency: Available through in-app emergency button</p>
+            <div className="flex justify-between items-center p-4 bg-white/10 rounded-lg">
+              <div>
+                <div className="text-white font-medium">Change Password</div>
+                <div className="text-white/70 text-sm">Update your account password</div>
+              </div>
+              <Button variant="outline" size="sm" className="bg-white/20 border-white/30 text-white hover:bg-white/30">
+                Change
+              </Button>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+
+            <div className="flex justify-between items-center p-4 bg-white/10 rounded-lg">
+              <div>
+                <div className="text-white font-medium">Login History</div>
+                <div className="text-white/70 text-sm">View recent account activity</div>
+              </div>
+              <Button variant="outline" size="sm" className="bg-white/20 border-white/30 text-white hover:bg-white/30">
+                View
+              </Button>
+            </div>
+
+            <div className="flex justify-between items-center p-4 bg-white/10 rounded-lg">
+              <div>
+                <div className="text-white font-medium">Privacy Settings</div>
+                <div className="text-white/70 text-sm">Manage your data and privacy</div>
+              </div>
+              <Button variant="outline" size="sm" className="bg-white/20 border-white/30 text-white hover:bg-white/30">
+                Manage
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 
-  const renderContent = () => {
-    switch (activePage) {
-      case 'activity':
-        return renderActivityPage();
-      case 'wallet':
-        return renderWalletPage();
-      case 'account':
-        return renderAccountPage();
-      case 'security':
-        return renderSecurityPage();
-      default:
-        return <div>Page not found</div>;
-    }
-  };
-
-  return (
-    <>
-      {renderContent()}
-      {showProfileEditor && (
-        <ProfileEditor onClose={() => setShowProfileEditor(false)} />
-      )}
-    </>
-  );
+  switch (activePage) {
+    case 'activity':
+      return renderActivityPage();
+    case 'wallet':
+      return renderWalletPage();
+    case 'account':
+      return renderAccountPage();
+    case 'security':
+      return renderSecurityPage();
+    default:
+      return null;
+  }
 };
 
 export default NavigationPages;

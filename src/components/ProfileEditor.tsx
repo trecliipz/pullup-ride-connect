@@ -4,38 +4,49 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { X, Upload, Camera } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Camera, User, Mail, Phone, Car, Save, Edit } from "lucide-react";
 import { useUser } from '@/context/UserContext';
-import { User } from '@/types/user';
 
-interface ProfileEditorProps {
-  onClose: () => void;
-}
-
-const ProfileEditor = ({ onClose }: ProfileEditorProps) => {
+const ProfileEditor = () => {
   const { currentUser, updateProfile, isDriver } = useUser();
+  const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     name: currentUser?.name || '',
     email: currentUser?.email || '',
     phone: currentUser?.phone || '',
-    avatar: currentUser?.avatar || '',
-    vehicleInfo: currentUser?.vehicleInfo || {
-      make: '',
-      model: '',
-      year: new Date().getFullYear(),
-      licensePlate: '',
-      color: ''
+    vehicleInfo: {
+      make: currentUser?.vehicleInfo?.make || '',
+      model: currentUser?.vehicleInfo?.model || '',
+      year: currentUser?.vehicleInfo?.year || new Date().getFullYear(),
+      licensePlate: currentUser?.vehicleInfo?.licensePlate || '',
+      color: currentUser?.vehicleInfo?.color || ''
     }
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    const updates: Partial<User> = {
+  const handleInputChange = (field: string, value: string | number) => {
+    if (field.startsWith('vehicle.')) {
+      const vehicleField = field.split('.')[1];
+      setFormData(prev => ({
+        ...prev,
+        vehicleInfo: {
+          ...prev.vehicleInfo,
+          [vehicleField]: value
+        }
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [field]: value
+      }));
+    }
+  };
+
+  const handleSave = () => {
+    const updates: any = {
       name: formData.name,
       email: formData.email,
-      phone: formData.phone,
-      avatar: formData.avatar,
+      phone: formData.phone
     };
 
     if (isDriver) {
@@ -43,176 +54,263 @@ const ProfileEditor = ({ onClose }: ProfileEditorProps) => {
     }
 
     updateProfile(updates);
-    onClose();
+    setIsEditing(false);
   };
 
-  const handleInputChange = (field: string, value: string | number) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  const handleVehicleChange = (field: string, value: string | number) => {
-    setFormData(prev => ({
-      ...prev,
+  const handleCancel = () => {
+    setFormData({
+      name: currentUser?.name || '',
+      email: currentUser?.email || '',
+      phone: currentUser?.phone || '',
       vehicleInfo: {
-        ...prev.vehicleInfo,
-        [field]: value
+        make: currentUser?.vehicleInfo?.make || '',
+        model: currentUser?.vehicleInfo?.model || '',
+        year: currentUser?.vehicleInfo?.year || new Date().getFullYear(),
+        licensePlate: currentUser?.vehicleInfo?.licensePlate || '',
+        color: currentUser?.vehicleInfo?.color || ''
       }
-    }));
-  };
-
-  const handleAvatarUpload = () => {
-    // Simulate photo upload - in a real app this would handle file uploads
-    const initials = formData.name.split(' ').map(n => n[0]).join('').toUpperCase();
-    setFormData(prev => ({
-      ...prev,
-      avatar: initials
-    }));
+    });
+    setIsEditing(false);
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <CardHeader className="flex flex-row items-center justify-between pb-4">
-          <CardTitle className="text-xl font-bold">Edit Profile</CardTitle>
-          <Button variant="ghost" size="sm" onClick={onClose}>
-            <X className="h-4 w-4" />
-          </Button>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Avatar Section */}
-            <div className="flex flex-col items-center space-y-4">
-              <div className="w-20 h-20 rounded-full bg-gradient-to-r from-orange-400 to-red-500 flex items-center justify-center text-white text-2xl font-bold">
-                {formData.avatar}
+    <div className="space-y-6">
+      {/* Profile Picture Section */}
+      <Card className="bg-white/10 border-white/20">
+        <CardContent className="p-6">
+          <div className="flex flex-col items-center space-y-4">
+            <div className="relative">
+              <div className="w-24 h-24 rounded-full bg-gradient-to-r from-orange-400 to-red-500 flex items-center justify-center text-2xl font-bold text-white">
+                {currentUser?.avatar}
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleAvatarUpload}
-                className="flex items-center gap-2"
-              >
-                <Camera className="h-4 w-4" />
-                Update Photo
-              </Button>
+              <button className="absolute -bottom-2 -right-2 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-lg hover:bg-gray-50 transition-colors">
+                <Camera className="h-4 w-4 text-gray-600" />
+              </button>
             </div>
+            <div className="text-center">
+              <h3 className="text-lg font-semibold text-white">{currentUser?.name}</h3>
+              <p className="text-white/70 text-sm">
+                {isDriver ? 'Driver Account' : 'Rider Account'} • ⭐ {currentUser?.rating}
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-            {/* Personal Information */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
+      {/* Personal Information */}
+      <Card className="bg-white/10 border-white/20">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-white flex items-center gap-2">
+            <User className="h-5 w-5" />
+            Personal Information
+          </CardTitle>
+          {!isEditing && (
+            <Button
+              onClick={() => setIsEditing(true)}
+              variant="outline"
+              size="sm"
+              className="bg-white/20 border-white/30 text-white hover:bg-white/30"
+            >
+              <Edit className="h-4 w-4 mr-2" />
+              Edit
+            </Button>
+          )}
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name" className="text-white text-sm font-medium">
+                Full Name
+              </Label>
+              {isEditing ? (
                 <Input
                   id="name"
                   value={formData.name}
                   onChange={(e) => handleInputChange('name', e.target.value)}
-                  required
+                  className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-orange-500"
+                  placeholder="Enter your full name"
                 />
-              </div>
+              ) : (
+                <div className="p-3 bg-white/5 rounded-md text-white">
+                  {currentUser?.name || 'Not provided'}
+                </div>
+              )}
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="email">Email Address</Label>
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-white text-sm font-medium">
+                Email Address
+              </Label>
+              {isEditing ? (
                 <Input
                   id="email"
                   type="email"
                   value={formData.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
-                  required
+                  className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-orange-500"
+                  placeholder="Enter your email"
                 />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
-                <Input
-                  id="phone"
-                  value={formData.phone}
-                  onChange={(e) => handleInputChange('phone', e.target.value)}
-                  required
-                />
-              </div>
+              ) : (
+                <div className="p-3 bg-white/5 rounded-md text-white flex items-center gap-2">
+                  <Mail className="h-4 w-4 text-white/70" />
+                  {currentUser?.email || 'Not provided'}
+                </div>
+              )}
             </div>
 
-            {/* Driver Vehicle Information */}
-            {isDriver && (
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold border-b pb-2">Vehicle Information</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="make">Make</Label>
-                    <Input
-                      id="make"
-                      value={formData.vehicleInfo.make}
-                      onChange={(e) => handleVehicleChange('make', e.target.value)}
-                      placeholder="e.g., Toyota"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="model">Model</Label>
-                    <Input
-                      id="model"
-                      value={formData.vehicleInfo.model}
-                      onChange={(e) => handleVehicleChange('model', e.target.value)}
-                      placeholder="e.g., Camry"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="year">Year</Label>
-                    <Input
-                      id="year"
-                      type="number"
-                      value={formData.vehicleInfo.year}
-                      onChange={(e) => handleVehicleChange('year', parseInt(e.target.value))}
-                      min="2000"
-                      max={new Date().getFullYear() + 1}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="licensePlate">License Plate</Label>
-                    <Input
-                      id="licensePlate"
-                      value={formData.vehicleInfo.licensePlate}
-                      onChange={(e) => handleVehicleChange('licensePlate', e.target.value)}
-                      placeholder="e.g., ABC-123"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="color">Color</Label>
-                    <Input
-                      id="color"
-                      value={formData.vehicleInfo.color}
-                      onChange={(e) => handleVehicleChange('color', e.target.value)}
-                      placeholder="e.g., White"
-                    />
-                  </div>
+            <div className="space-y-2">
+              <Label htmlFor="phone" className="text-white text-sm font-medium">
+                Phone Number
+              </Label>
+              {isEditing ? (
+                <Input
+                  id="phone"
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => handleInputChange('phone', e.target.value)}
+                  className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-orange-500"
+                  placeholder="Enter your phone number"
+                />
+              ) : (
+                <div className="p-3 bg-white/5 rounded-md text-white flex items-center gap-2">
+                  <Phone className="h-4 w-4 text-white/70" />
+                  {currentUser?.phone || 'Not provided'}
                 </div>
-              </div>
-            )}
+              )}
+            </div>
+          </div>
 
-            {/* Submit Button */}
+          {isEditing && (
             <div className="flex gap-3 pt-4">
               <Button
-                type="button"
+                onClick={handleSave}
+                className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+              >
+                <Save className="h-4 w-4 mr-2" />
+                Save Changes
+              </Button>
+              <Button
+                onClick={handleCancel}
                 variant="outline"
-                onClick={onClose}
-                className="flex-1"
+                className="flex-1 bg-white/20 border-white/30 text-white hover:bg-white/30"
               >
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                className="flex-1 bg-gradient-to-r from-orange-400 to-red-500 hover:from-orange-500 hover:to-red-600"
-              >
-                Save Changes
-              </Button>
             </div>
-          </form>
+          )}
         </CardContent>
       </Card>
+
+      {/* Vehicle Information (Driver Only) */}
+      {isDriver && (
+        <Card className="bg-white/10 border-white/20">
+          <CardHeader>
+            <CardTitle className="text-white flex items-center gap-2">
+              <Car className="h-5 w-5" />
+              Vehicle Information
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="make" className="text-white text-sm font-medium">
+                  Make
+                </Label>
+                {isEditing ? (
+                  <Input
+                    id="make"
+                    value={formData.vehicleInfo.make}
+                    onChange={(e) => handleInputChange('vehicle.make', e.target.value)}
+                    className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-orange-500"
+                    placeholder="e.g., Toyota"
+                  />
+                ) : (
+                  <div className="p-3 bg-white/5 rounded-md text-white">
+                    {currentUser?.vehicleInfo?.make || 'Not provided'}
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="model" className="text-white text-sm font-medium">
+                  Model
+                </Label>
+                {isEditing ? (
+                  <Input
+                    id="model"
+                    value={formData.vehicleInfo.model}
+                    onChange={(e) => handleInputChange('vehicle.model', e.target.value)}
+                    className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-orange-500"
+                    placeholder="e.g., Camry"
+                  />
+                ) : (
+                  <div className="p-3 bg-white/5 rounded-md text-white">
+                    {currentUser?.vehicleInfo?.model || 'Not provided'}
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="year" className="text-white text-sm font-medium">
+                  Year
+                </Label>
+                {isEditing ? (
+                  <Input
+                    id="year"
+                    type="number"
+                    value={formData.vehicleInfo.year}
+                    onChange={(e) => handleInputChange('vehicle.year', parseInt(e.target.value))}
+                    className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-orange-500"
+                    placeholder="2023"
+                  />
+                ) : (
+                  <div className="p-3 bg-white/5 rounded-md text-white">
+                    {currentUser?.vehicleInfo?.year || 'Not provided'}
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="color" className="text-white text-sm font-medium">
+                  Color
+                </Label>
+                {isEditing ? (
+                  <Input
+                    id="color"
+                    value={formData.vehicleInfo.color}
+                    onChange={(e) => handleInputChange('vehicle.color', e.target.value)}
+                    className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-orange-500"
+                    placeholder="e.g., White"
+                  />
+                ) : (
+                  <div className="p-3 bg-white/5 rounded-md text-white">
+                    {currentUser?.vehicleInfo?.color || 'Not provided'}
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="licensePlate" className="text-white text-sm font-medium">
+                  License Plate
+                </Label>
+                {isEditing ? (
+                  <Input
+                    id="licensePlate"
+                    value={formData.vehicleInfo.licensePlate}
+                    onChange={(e) => handleInputChange('vehicle.licensePlate', e.target.value)}
+                    className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-orange-500"
+                    placeholder="e.g., ABC-123"
+                  />
+                ) : (
+                  <div className="p-3 bg-white/5 rounded-md text-white">
+                    {currentUser?.vehicleInfo?.licensePlate || 'Not provided'}
+                  </div>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };

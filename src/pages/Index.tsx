@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { Navigation, MapPin, Flag, Phone, MessageCircle, Home, List, Wallet, User, Shield, Car } from "lucide-react";
+import { Navigation, MapPin, Flag, Phone, MessageCircle, Home, List, Wallet, User, Shield, Car, Send, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import Notification from "@/components/Notification";
 import EnhancedInteractiveMap from "@/components/EnhancedInteractiveMap";
@@ -9,6 +9,8 @@ import NavigationPages from "@/components/NavigationPages";
 import RideRating from "@/components/RideRating";
 import { useUser } from '@/context/UserContext';
 import { RideRequest } from '@/types/user';
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const Index = () => {
   const [selectedRideType, setSelectedRideType] = useState('economy');
@@ -22,6 +24,9 @@ const Index = () => {
   const [activeNav, setActiveNav] = useState('home');
   const [distance, setDistance] = useState(0);
   const [showRating, setShowRating] = useState(false);
+  const [showMessaging, setShowMessaging] = useState(false);
+  const [messages, setMessages] = useState<Array<{id: string, text: string, sender: 'rider' | 'driver', timestamp: Date}>>([]);
+  const [newMessage, setNewMessage] = useState('');
   const [basePrices] = useState({
     economy: 2.50,
     comfort: 3.50,
@@ -207,6 +212,31 @@ const Index = () => {
     setActiveRideRequest(null);
     setRideStatus('waiting');
     setDestination('');
+  };
+
+  const sendMessage = () => {
+    if (!newMessage.trim() || !activeRideRequest) return;
+    
+    const message = {
+      id: Date.now().toString(),
+      text: newMessage.trim(),
+      sender: 'rider' as const,
+      timestamp: new Date()
+    };
+    
+    setMessages(prev => [...prev, message]);
+    setNewMessage('');
+    
+    // Simulate driver response
+    setTimeout(() => {
+      const driverResponse = {
+        id: (Date.now() + 1).toString(),
+        text: "Got it! I'll be there soon.",
+        sender: 'driver' as const,
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, driverResponse]);
+    }, 2000);
   };
 
   const navItems = [
@@ -439,14 +469,14 @@ const Index = () => {
               <div className="flex gap-2 lg:gap-[10px]">
                 <Button
                   onClick={() => showNotification('Calling driver...')}
-                  className="btn btn-secondary flex-1 gap-1 lg:gap-2 text-xs lg:text-sm py-2 lg:py-[10px] bg-white/20 border border-gray-300"
+                  className="btn btn-secondary flex-1 gap-1 lg:gap-2 text-xs lg:text-sm py-2 lg:py-[10px] bg-blue-600 hover:bg-blue-700 text-white"
                 >
                   <Phone className="h-3 w-3 lg:h-4 lg:w-4" />
                   Call
                 </Button>
                 <Button
-                  onClick={() => showNotification('Opening chat with driver...')}
-                  className="btn btn-secondary flex-1 gap-1 lg:gap-2 text-xs lg:text-sm py-2 lg:py-[10px] bg-white/20 border border-gray-300"
+                  onClick={() => setShowMessaging(true)}
+                  className="btn btn-secondary flex-1 gap-1 lg:gap-2 text-xs lg:text-sm py-2 lg:py-[10px] bg-green-600 hover:bg-green-700 text-white"
                 >
                   <MessageCircle className="h-3 w-3 lg:h-4 lg:w-4" />
                   Message
@@ -456,6 +486,71 @@ const Index = () => {
           )}
         </div>
       </div>
+
+      {/* Messaging Modal */}
+      {showMessaging && activeRideRequest && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-md h-96 flex flex-col">
+            <CardHeader className="flex flex-row items-center justify-between py-3">
+              <CardTitle className="text-lg">
+                Chat with {availableDrivers.find(d => d.id === activeRideRequest.driverId)?.name}
+              </CardTitle>
+              <Button
+                onClick={() => setShowMessaging(false)}
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </CardHeader>
+            <CardContent className="flex-1 flex flex-col p-4">
+              <div className="flex-1 overflow-y-auto space-y-3 mb-4">
+                {messages.length === 0 ? (
+                  <div className="text-center text-gray-500 py-8">
+                    <MessageCircle className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                    <p>Start a conversation with your driver</p>
+                  </div>
+                ) : (
+                  messages.map((message) => (
+                    <div
+                      key={message.id}
+                      className={`flex ${message.sender === 'rider' ? 'justify-end' : 'justify-start'}`}
+                    >
+                      <div
+                        className={`max-w-[80%] p-3 rounded-lg text-sm ${
+                          message.sender === 'rider'
+                            ? 'bg-blue-500 text-white'
+                            : 'bg-gray-200 text-gray-800'
+                        }`}
+                      >
+                        <p>{message.text}</p>
+                        <p className={`text-xs mt-1 ${
+                          message.sender === 'rider' ? 'text-blue-100' : 'text-gray-500'
+                        }`}>
+                          {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+              <div className="flex gap-2">
+                <Input
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  placeholder="Type a message..."
+                  onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+                  className="flex-1"
+                />
+                <Button onClick={sendMessage} disabled={!newMessage.trim()}>
+                  <Send className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Rating Modal */}
       {showRating && activeRideRequest && (

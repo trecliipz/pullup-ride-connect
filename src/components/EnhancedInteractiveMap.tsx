@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { MapPin, Navigation, Car } from 'lucide-react';
@@ -116,25 +115,25 @@ const EnhancedInteractiveMap = ({ pickup, destination, onDistanceCalculated, act
       icon: {
         url: isDriver 
           ? 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-              <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="20" cy="20" r="18" fill="#3B82F6" stroke="white" stroke-width="4"/>
-                <path d="M12 20h16M20 12v16" stroke="white" stroke-width="3"/>
+              <svg width="50" height="50" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="25" cy="25" r="22" fill="#3B82F6" stroke="white" stroke-width="6"/>
+                <path d="M15 25h20M25 15v20" stroke="white" stroke-width="4"/>
               </svg>
             `)
           : 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-              <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="20" cy="20" r="18" fill="#22C55E" stroke="white" stroke-width="4"/>
-                <circle cx="20" cy="20" r="8" fill="white"/>
+              <svg width="50" height="50" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="25" cy="25" r="22" fill="#22C55E" stroke="white" stroke-width="6"/>
+                <circle cx="25" cy="25" r="10" fill="white"/>
               </svg>
             `),
-        scaledSize: new window.google.maps.Size(40, 40),
-        anchor: new window.google.maps.Point(20, 20)
+        scaledSize: new window.google.maps.Size(50, 50),
+        anchor: new window.google.maps.Point(25, 25)
       }
     });
 
   }, [userLocation, isDriver]);
 
-  // Add driver markers
+  // Add improved driver markers with better car icons
   useEffect(() => {
     if (!map || isDriver) return;
 
@@ -150,25 +149,31 @@ const EnhancedInteractiveMap = ({ pickup, destination, onDistanceCalculated, act
           title: `${driver.name} - ${driver.vehicleInfo?.make} ${driver.vehicleInfo?.model}`,
           icon: {
             url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-              <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="20" cy="20" r="18" fill="#F97316" stroke="white" stroke-width="4"/>
-                <path d="M10 22h20M12 18h16M14 14h12" stroke="white" stroke-width="2"/>
-                <circle cx="14" cy="26" r="2" fill="white"/>
-                <circle cx="26" cy="26" r="2" fill="white"/>
+              <svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="30" cy="30" r="26" fill="#F97316" stroke="white" stroke-width="6"/>
+                <g transform="translate(15, 18)">
+                  <rect x="4" y="8" width="22" height="12" rx="2" fill="white"/>
+                  <rect x="2" y="12" width="26" height="6" rx="3" fill="white"/>
+                  <circle cx="8" cy="22" r="3" fill="#1f2937"/>
+                  <circle cx="22" cy="22" r="3" fill="#1f2937"/>
+                  <rect x="6" y="4" width="8" height="6" rx="1" fill="white"/>
+                  <rect x="16" y="4" width="8" height="6" rx="1" fill="white"/>
+                </g>
               </svg>
             `),
-            scaledSize: new window.google.maps.Size(40, 40),
-            anchor: new window.google.maps.Point(20, 20)
+            scaledSize: new window.google.maps.Size(60, 60),
+            anchor: new window.google.maps.Point(30, 30)
           }
         });
 
         const infoWindow = new window.google.maps.InfoWindow({
           content: `
-            <div class="p-2">
-              <div class="font-bold">${driver.name}</div>
-              <div class="text-sm text-gray-600">⭐ ${driver.rating}</div>
-              <div class="text-sm">${driver.vehicleInfo?.make} ${driver.vehicleInfo?.model}</div>
-              <div class="text-sm text-gray-500">${driver.vehicleInfo?.color} • ${driver.vehicleInfo?.licensePlate}</div>
+            <div class="p-3 min-w-[200px]">
+              <div class="font-bold text-lg text-gray-800">${driver.name}</div>
+              <div class="text-sm text-yellow-600 mb-2">⭐ ${driver.rating} rating</div>
+              <div class="text-sm font-medium text-gray-700">${driver.vehicleInfo?.make} ${driver.vehicleInfo?.model}</div>
+              <div class="text-xs text-gray-500 mt-1">${driver.vehicleInfo?.color} • ${driver.vehicleInfo?.licensePlate}</div>
+              <div class="mt-2 text-xs text-blue-600">Available for rides</div>
             </div>
           `
         });
