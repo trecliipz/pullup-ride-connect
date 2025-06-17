@@ -7,6 +7,7 @@ export interface User {
   avatar: string;
   rating: number;
   type: 'rider' | 'driver';
+  profilePhoto?: string;
   isOnline?: boolean;
   currentLocation?: {
     lat: number;

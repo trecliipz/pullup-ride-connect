@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import { useUser } from '@/context/UserContext';
 
@@ -21,6 +22,7 @@ const EnhancedInteractiveMap: React.FC<EnhancedInteractiveMapProps> = ({
   const [mapLoaded, setMapLoaded] = useState(false);
   const { currentUser, availableDrivers } = useUser();
   const driverMarkers = useRef<google.maps.Marker[]>([]);
+  const infoWindows = useRef<google.maps.InfoWindow[]>([]);
 
   // Create improved car icon SVG
   const createCarIcon = (color = '#3B82F6') => {
@@ -79,9 +81,11 @@ const EnhancedInteractiveMap: React.FC<EnhancedInteractiveMapProps> = ({
   useEffect(() => {
     if (!map || !window.google) return;
 
-    // Clear existing markers
+    // Clear existing markers and info windows
     driverMarkers.current.forEach(marker => marker.setMap(null));
+    infoWindows.current.forEach(infoWindow => infoWindow.close());
     driverMarkers.current = [];
+    infoWindows.current = [];
 
     // Add available drivers to map with improved car icons
     availableDrivers.forEach((driver) => {
@@ -114,12 +118,12 @@ const EnhancedInteractiveMap: React.FC<EnhancedInteractiveMapProps> = ({
 
         marker.addListener('click', () => {
           // Close all other info windows
-          driverMarkers.current.forEach(m => m.infoWindow?.close());
+          infoWindows.current.forEach(iw => iw.close());
           infoWindow.open(map, marker);
         });
 
-        marker.infoWindow = infoWindow;
         driverMarkers.current.push(marker);
+        infoWindows.current.push(infoWindow);
       }
     });
 
@@ -157,6 +161,7 @@ const EnhancedInteractiveMap: React.FC<EnhancedInteractiveMapProps> = ({
         });
 
         driverMarkers.current.push(activeMarker);
+        infoWindows.current.push(activeInfoWindow);
       }
     }
   }, [availableDrivers, activeRideRequest]);
