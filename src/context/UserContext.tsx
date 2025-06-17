@@ -10,9 +10,12 @@ interface UserContextType {
   activeRideRequest: RideRequest | null;
   setActiveRideRequest: (request: RideRequest | null) => void;
   pendingRequests: RideRequest[];
-  setPendingRequests: (requests: RideRequest[]) => void;
+  setPendingRequests: (requests: RideRequest[] | ((prev: RideRequest[]) => RideRequest[])) => void;
+  rideHistory: RideRequest[];
+  setRideHistory: (history: RideRequest[] | ((prev: RideRequest[]) => RideRequest[])) => void;
   isDriver: boolean;
   switchUserType: () => void;
+  updateProfile: (updates: Partial<User>) => void;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -22,6 +25,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [availableDrivers, setAvailableDrivers] = useState<Driver[]>([]);
   const [activeRideRequest, setActiveRideRequest] = useState<RideRequest | null>(null);
   const [pendingRequests, setPendingRequests] = useState<RideRequest[]>([]);
+  const [rideHistory, setRideHistory] = useState<RideRequest[]>([]);
 
   useEffect(() => {
     // Initialize with a default rider account
@@ -99,6 +103,27 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     ];
     setAvailableDrivers(mockDrivers);
+
+    // Initialize mock ride history
+    const mockHistory: RideRequest[] = [
+      {
+        id: 'ride_001',
+        riderId: 'rider_1',
+        driverId: 'driver_1',
+        pickup: { address: '123 Main St', coordinates: { lat: 40.7128, lng: -74.0060 } },
+        destination: { address: '456 Broadway', coordinates: { lat: 40.7180, lng: -74.0100 } },
+        rideType: 'economy',
+        price: 12.50,
+        status: 'completed',
+        requestedAt: new Date(Date.now() - 86400000),
+        acceptedAt: new Date(Date.now() - 86400000 + 180000),
+        distance: 5.2,
+        estimatedDuration: 15,
+        rating: 5,
+        feedback: 'Great driver!'
+      }
+    ];
+    setRideHistory(mockHistory);
   }, []);
 
   const isDriver = currentUser?.type === 'driver';
@@ -107,7 +132,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!currentUser) return;
 
     if (currentUser.type === 'rider') {
-      // Switch to driver
       const driverAccount: Driver = {
         ...currentUser,
         id: 'driver_user',
@@ -125,7 +149,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
       setCurrentUser(driverAccount);
     } else {
-      // Switch to rider
       const riderAccount: User = {
         ...currentUser,
         id: 'rider_1',
@@ -133,6 +156,12 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         type: 'rider'
       };
       setCurrentUser(riderAccount);
+    }
+  };
+
+  const updateProfile = (updates: Partial<User>) => {
+    if (currentUser) {
+      setCurrentUser({ ...currentUser, ...updates });
     }
   };
 
@@ -146,8 +175,11 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setActiveRideRequest,
       pendingRequests,
       setPendingRequests,
+      rideHistory,
+      setRideHistory,
       isDriver,
-      switchUserType
+      switchUserType,
+      updateProfile
     }}>
       {children}
     </UserContext.Provider>

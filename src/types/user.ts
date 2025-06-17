@@ -38,8 +38,11 @@ export interface RideRequest {
   status: 'pending' | 'accepted' | 'declined' | 'in_progress' | 'completed' | 'cancelled';
   requestedAt: Date;
   acceptedAt?: Date;
+  completedAt?: Date;
   distance: number;
   estimatedDuration: number;
+  rating?: number;
+  feedback?: string;
 }
 
 export interface Driver extends User {

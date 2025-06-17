@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Navigation, MapPin, Flag, Phone, MessageCircle, Home, List, Wallet, User, Shield, Car } from "lucide-react";
@@ -7,6 +6,7 @@ import Notification from "@/components/Notification";
 import EnhancedInteractiveMap from "@/components/EnhancedInteractiveMap";
 import DriverDashboard from "@/components/DriverDashboard";
 import NavigationPages from "@/components/NavigationPages";
+import RideRating from "@/components/RideRating";
 import { useUser } from '@/context/UserContext';
 import { RideRequest } from '@/types/user';
 
@@ -21,6 +21,7 @@ const Index = () => {
   const [notification, setNotification] = useState('');
   const [activeNav, setActiveNav] = useState('home');
   const [distance, setDistance] = useState(0);
+  const [showRating, setShowRating] = useState(false);
   const [basePrices] = useState({
     economy: 2.50,
     comfort: 3.50,
@@ -34,7 +35,9 @@ const Index = () => {
     setActiveRideRequest, 
     pendingRequests, 
     setPendingRequests,
-    availableDrivers 
+    availableDrivers,
+    rideHistory,
+    setRideHistory
   } = useUser();
 
   const calculatePrice = (distanceKm: number, rideType: string) => {
@@ -87,7 +90,6 @@ const Index = () => {
       return;
     }
 
-    // Find nearby available drivers
     const nearbyDrivers = availableDrivers.filter(driver => 
       driver.isAvailable && 
       driver.currentLocation &&
@@ -95,7 +97,7 @@ const Index = () => {
       calculateDistance(
         driver.currentLocation,
         currentUser.currentLocation
-      ) < 5 // within 5km
+      ) < 5
     );
 
     if (nearbyDrivers.length === 0) {
@@ -106,7 +108,6 @@ const Index = () => {
     setIsLoading(true);
     setRideStatus('searching');
     
-    // Create ride request
     const newRequest: RideRequest = {
       id: `req_${Date.now()}`,
       riderId: currentUser?.id || '',
@@ -116,7 +117,7 @@ const Index = () => {
       },
       destination: {
         address: destination,
-        coordinates: { lat: 40.7180, lng: -74.0100 } // Mock destination coordinates
+        coordinates: { lat: 40.7180, lng: -74.0100 }
       },
       rideType: selectedRideType as 'economy' | 'comfort' | 'xl',
       price: calculatePrice(distance, selectedRideType),
@@ -126,8 +127,7 @@ const Index = () => {
       estimatedDuration: Math.floor(distance * 2) + 10
     };
 
-    // Add to pending requests for drivers to see
-    setPendingRequests([...pendingRequests, newRequest]);
+    setPendingRequests(prev => [...prev, newRequest]);
     
     setTimeout(() => {
       setIsLoading(false);
@@ -136,7 +136,6 @@ const Index = () => {
   };
 
   const findDriver = (request: RideRequest) => {
-    // Simulate driver accepting the ride
     const acceptingDriver = availableDrivers.find(d => d.isAvailable);
     if (acceptingDriver) {
       const acceptedRequest = {
@@ -151,7 +150,6 @@ const Index = () => {
       setShowDriverInfo(true);
       showNotification(`Driver found! ${acceptingDriver.name} is on the way`);
       
-      // Remove from pending requests
       setPendingRequests(prev => prev.filter(req => req.id !== request.id));
       
       const countdown = setInterval(() => {
@@ -160,6 +158,14 @@ const Index = () => {
             clearInterval(countdown);
             showNotification('Your driver has arrived!');
             setRideStatus('in-progress');
+            
+            // Simulate ride completion after 30 seconds
+            setTimeout(() => {
+              setRideStatus('completed');
+              setShowDriverInfo(false);
+              setShowRating(true);
+            }, 30000);
+            
             return 0;
           }
           return prev - 1;
@@ -169,7 +175,7 @@ const Index = () => {
   };
 
   const calculateDistance = (point1: { lat: number; lng: number }, point2: { lat: number; lng: number }) => {
-    const R = 6371; // Earth's radius in km
+    const R = 6371;
     const dLat = (point2.lat - point1.lat) * Math.PI / 180;
     const dLon = (point2.lng - point1.lng) * Math.PI / 180;
     const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
@@ -181,6 +187,26 @@ const Index = () => {
 
   const scheduleRide = () => {
     showNotification('Schedule ride feature coming soon!');
+  };
+
+  const handleRatingSubmit = (rating: number, feedback: string) => {
+    if (activeRideRequest) {
+      const completedRide = {
+        ...activeRideRequest,
+        status: 'completed' as const,
+        rating,
+        feedback,
+        completedAt: new Date()
+      };
+      
+      setRideHistory(prev => [completedRide, ...prev]);
+      showNotification('Thank you for your feedback!');
+    }
+    
+    setShowRating(false);
+    setActiveRideRequest(null);
+    setRideStatus('waiting');
+    setDestination('');
   };
 
   const navItems = [
@@ -198,7 +224,6 @@ const Index = () => {
     }
   };
 
-  // Emergency button simulation
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'E' && event.ctrlKey) {
@@ -216,7 +241,7 @@ const Index = () => {
     }
 
     if (activeNav !== 'home') {
-      return <NavigationPages activePage={activeNav} />;
+      return <NavigationPages activePage={activeNav} onNavigateHome={() => setActiveNav('home')} />;
     }
 
     return (
@@ -317,6 +342,26 @@ const Index = () => {
             <p className="text-sm lg:text-base">Finding your driver...</p>
           </div>
         )}
+
+        {/* Active Ride Status */}
+        {activeRideRequest && rideStatus !== 'waiting' && (
+          <div className="mt-6 p-4 bg-green-500/20 border border-green-500/30 rounded-2xl">
+            <div className="text-green-400 font-bold mb-2">
+              {rideStatus === 'found' && 'Driver Found!'}
+              {rideStatus === 'in-progress' && 'Ride in Progress'}
+              {rideStatus === 'completed' && 'Ride Completed'}
+            </div>
+            <div className="text-white/80 text-sm">
+              From: {activeRideRequest.pickup.address}
+            </div>
+            <div className="text-white/80 text-sm">
+              To: {activeRideRequest.destination.address}
+            </div>
+            <div className="text-orange-400 font-bold mt-2">
+              ${activeRideRequest.price.toFixed(2)}
+            </div>
+          </div>
+        )}
       </>
     );
   };
@@ -359,6 +404,7 @@ const Index = () => {
             pickup={pickup}
             destination={destination}
             onDistanceCalculated={handleDistanceCalculated}
+            activeRideRequest={activeRideRequest}
           />
           
           {/* Driver Info Overlay */}
@@ -410,6 +456,15 @@ const Index = () => {
           )}
         </div>
       </div>
+
+      {/* Rating Modal */}
+      {showRating && activeRideRequest && (
+        <RideRating
+          rideRequest={activeRideRequest}
+          driverName={availableDrivers.find(d => d.id === activeRideRequest.driverId)?.name || 'Driver'}
+          onSubmit={handleRatingSubmit}
+        />
+      )}
 
       {/* Notification */}
       <Notification message={notification} />

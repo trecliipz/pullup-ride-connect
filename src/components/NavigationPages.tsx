@@ -15,92 +15,91 @@ import {
   Mail,
   Edit,
   CreditCard,
-  Plus
+  Plus,
+  Home,
+  Star
 } from "lucide-react";
 import { useUser } from '@/context/UserContext';
+import ProfileEditor from './ProfileEditor';
 
 interface NavigationPagesProps {
   activePage: string;
+  onNavigateHome: () => void;
 }
 
-const NavigationPages = ({ activePage }: NavigationPagesProps) => {
-  const { currentUser, isDriver, switchUserType } = useUser();
+const NavigationPages = ({ activePage, onNavigateHome }: NavigationPagesProps) => {
+  const { currentUser, isDriver, switchUserType, rideHistory } = useUser();
   const [balance] = useState(45.60);
+  const [showProfileEditor, setShowProfileEditor] = useState(false);
 
   const renderActivityPage = () => (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold mb-6">Trip History</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold mb-6">Trip History</h2>
+        <Button variant="outline" onClick={onNavigateHome} className="mb-6">
+          <Home className="h-4 w-4 mr-2" />
+          Home
+        </Button>
+      </div>
       
       {/* Recent Trips */}
       <div className="space-y-4">
-        {[
-          {
-            id: 1,
-            date: "Today, 2:30 PM",
-            from: "123 Main St",
-            to: "456 Broadway",
-            driver: "Mike Chen",
-            fare: "$12.50",
-            rating: 5,
-            status: "Completed"
-          },
-          {
-            id: 2,
-            date: "Yesterday, 8:45 AM",
-            from: "Home",
-            to: "Office",
-            driver: "Sarah Wilson",
-            fare: "$8.75",
-            rating: 4,
-            status: "Completed"
-          },
-          {
-            id: 3,
-            date: "Dec 14, 6:20 PM",
-            from: "Central Park",
-            to: "Times Square",
-            driver: "Alex Rodriguez",
-            fare: "$15.20",
-            rating: 5,
-            status: "Completed"
-          }
-        ].map((trip) => (
-          <Card key={trip.id}>
-            <CardContent className="p-4">
-              <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Badge variant="outline" className="text-xs">{trip.status}</Badge>
-                    <span className="text-sm text-gray-500">{trip.date}</span>
-                  </div>
-                  <div className="space-y-1 mb-2">
-                    <div className="flex items-center gap-2 text-sm">
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <span>{trip.from}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                      <span>{trip.to}</span>
-                    </div>
-                  </div>
-                  <div className="text-sm text-gray-600">
-                    Driver: {trip.driver} • ⭐ {trip.rating}/5
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-lg font-bold">{trip.fare}</div>
-                </div>
-              </div>
+        {rideHistory.length === 0 ? (
+          <Card>
+            <CardContent className="p-6 text-center text-gray-500">
+              No ride history yet. Take your first ride to see it here!
             </CardContent>
           </Card>
-        ))}
+        ) : (
+          rideHistory.map((trip) => (
+            <Card key={trip.id}>
+              <CardContent className="p-4">
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Badge variant="outline" className="text-xs">{trip.status}</Badge>
+                      <span className="text-sm text-gray-500">{trip.requestedAt.toLocaleDateString()}</span>
+                    </div>
+                    <div className="space-y-1 mb-2">
+                      <div className="flex items-center gap-2 text-sm">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <span>{trip.pickup.address}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm">
+                        <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                        <span>{trip.destination.address}</span>
+                      </div>
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      Distance: {trip.distance.toFixed(1)} km
+                      {trip.rating && (
+                        <span className="ml-2">
+                          • ⭐ {trip.rating}/5
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-lg font-bold">${trip.price.toFixed(2)}</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        )}
       </div>
     </div>
   );
 
   const renderWalletPage = () => (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold mb-6">Wallet</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold mb-6">Wallet</h2>
+        <Button variant="outline" onClick={onNavigateHome} className="mb-6">
+          <Home className="h-4 w-4 mr-2" />
+          Home
+        </Button>
+      </div>
       
       {/* Balance Card */}
       <Card className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
@@ -108,7 +107,7 @@ const NavigationPages = ({ activePage }: NavigationPagesProps) => {
           <div className="flex justify-between items-center">
             <div>
               <p className="text-blue-100 mb-1">Current Balance</p>
-              <p className="text-3xl font-bold">${balance}</p>
+              <p className="text-3xl font-bold">${balance.toFixed(2)}</p>
             </div>
             <Wallet className="h-12 w-12 text-blue-200" />
           </div>
@@ -134,26 +133,23 @@ const NavigationPages = ({ activePage }: NavigationPagesProps) => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {[
-              { id: 1, type: "Trip Payment", amount: "-$12.50", date: "Today", icon: MapPin },
-              { id: 2, type: "Wallet Top-up", amount: "+$50.00", date: "Dec 14", icon: Plus },
-              { id: 3, type: "Trip Payment", amount: "-$8.75", date: "Dec 13", icon: MapPin }
-            ].map((transaction) => (
+            {rideHistory.slice(0, 5).map((transaction) => (
               <div key={transaction.id} className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                    <transaction.icon className="h-5 w-5 text-blue-600" />
+                    <MapPin className="h-5 w-5 text-blue-600" />
                   </div>
                   <div>
-                    <p className="font-medium">{transaction.type}</p>
-                    <p className="text-sm text-gray-500">{transaction.date}</p>
+                    <p className="font-medium">Trip Payment</p>
+                    <p className="text-sm text-gray-500">{transaction.requestedAt.toLocaleDateString()}</p>
                   </div>
                 </div>
-                <p className={`font-bold ${transaction.amount.startsWith('+') ? 'text-green-600' : 'text-red-600'}`}>
-                  {transaction.amount}
-                </p>
+                <p className="font-bold text-red-600">-${transaction.price.toFixed(2)}</p>
               </div>
             ))}
+            {rideHistory.length === 0 && (
+              <p className="text-center text-gray-500 py-4">No transactions yet</p>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -162,7 +158,13 @@ const NavigationPages = ({ activePage }: NavigationPagesProps) => {
 
   const renderAccountPage = () => (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold mb-6">Account Settings</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold mb-6">Account Settings</h2>
+        <Button variant="outline" onClick={onNavigateHome} className="mb-6">
+          <Home className="h-4 w-4 mr-2" />
+          Home
+        </Button>
+      </div>
       
       {/* Profile Section */}
       <Card>
@@ -181,7 +183,7 @@ const NavigationPages = ({ activePage }: NavigationPagesProps) => {
                 {isDriver ? "Driver Account" : "Rider Account"}
               </Badge>
             </div>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={() => setShowProfileEditor(true)}>
               <Edit className="h-4 w-4 mr-2" />
               Edit
             </Button>
@@ -259,7 +261,13 @@ const NavigationPages = ({ activePage }: NavigationPagesProps) => {
 
   const renderSecurityPage = () => (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold mb-6">🛡️ Security & Privacy</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold mb-6">🛡️ Security & Privacy</h2>
+        <Button variant="outline" onClick={onNavigateHome} className="mb-6">
+          <Home className="h-4 w-4 mr-2" />
+          Home
+        </Button>
+      </div>
       
       <div className="space-y-6">
         <Card>
@@ -332,18 +340,29 @@ const NavigationPages = ({ activePage }: NavigationPagesProps) => {
     </div>
   );
 
-  switch (activePage) {
-    case 'activity':
-      return renderActivityPage();
-    case 'wallet':
-      return renderWalletPage();
-    case 'account':
-      return renderAccountPage();
-    case 'security':
-      return renderSecurityPage();
-    default:
-      return <div>Page not found</div>;
-  }
+  const renderContent = () => {
+    switch (activePage) {
+      case 'activity':
+        return renderActivityPage();
+      case 'wallet':
+        return renderWalletPage();
+      case 'account':
+        return renderAccountPage();
+      case 'security':
+        return renderSecurityPage();
+      default:
+        return <div>Page not found</div>;
+    }
+  };
+
+  return (
+    <>
+      {renderContent()}
+      {showProfileEditor && (
+        <ProfileEditor onClose={() => setShowProfileEditor(false)} />
+      )}
+    </>
+  );
 };
 
 export default NavigationPages;
